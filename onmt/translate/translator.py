@@ -519,7 +519,7 @@ class Translator(object):
                     self.max_length,
                     min_length=self.min_length,
                     n_best=self.n_best,
-                    return_attention=attn_debug or self.replace_unk, tags)
+                    return_attention=attn_debug or self.replace_unk, tags=tags)
 
     def _run_encoder(self, batch):
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
