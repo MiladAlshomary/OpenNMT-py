@@ -326,7 +326,7 @@ class Translator(object):
                 con = json.loads(mask)
                 words = con['words']
                 print(words)
-                probs = [p[1] for p in con['class_probabilities'][:len(words)]]
+                probs = [p[1] for p in con['logits'][:len(words)]]
                 tags = [1 if p > 0.2 else 0 for p in probs]
 
                 batch_data = self.translate_batch(
