@@ -234,7 +234,7 @@ class Translator(object):
             copy_attn=model_opt.copy_attn,
             global_scorer=global_scorer,
             out_file=out_file,
-            constraint_file = opt.constraint_file
+            constraint_file = opt.constraint_file,
             report_score=report_score,
             logger=logger,
             seed=opt.seed)
