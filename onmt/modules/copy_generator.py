@@ -3,6 +3,7 @@ import torch.nn as nn
 
 from onmt.utils.misc import aeq
 from onmt.utils.loss import LossComputeBase
+from torch.autograd import Variable
 
 
 def collapse_copy_scores(scores, batch, tgt_vocab, src_vocabs,
