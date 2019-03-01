@@ -544,6 +544,8 @@ def translate_opts(parser):
     group.add('--src', '-src', required=True,
               help="Source sequence to decode (one line per "
                    "sequence)")
+    group.add('--constraint_file', '-constraint_file', required=False,
+              help="constraint file for content selection")
     group.add('--src_dir', '-src_dir', default="",
               help='Source directory for image or audio files')
     group.add('--tgt', '-tgt',
