@@ -500,7 +500,7 @@ class Translator(object):
         results["attention"] = random_sampler.attention
         return results
 
-    def translate_batch(self, batch, src_vocabs, attn_debug):
+    def translate_batch(self, batch, src_vocabs, attn_debug, tags):
         """Translate a batch of sentences."""
         with torch.no_grad():
             if self.beam_size == 1:
@@ -519,7 +519,7 @@ class Translator(object):
                     self.max_length,
                     min_length=self.min_length,
                     n_best=self.n_best,
-                    return_attention=attn_debug or self.replace_unk)
+                    return_attention=attn_debug or self.replace_unk, tags)
 
     def _run_encoder(self, batch):
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
@@ -545,7 +545,8 @@ class Translator(object):
             memory_lengths,
             src_map=None,
             step=None,
-            batch_offset=None):
+            batch_offset=None,
+            tags=[]):
         if self.copy_attn:
             # Turn any copied words into UNKs.
             decoder_in = decoder_in.masked_fill(
@@ -573,7 +574,7 @@ class Translator(object):
             attn = dec_attn["copy"]
             scores = self.model.generator(dec_out.view(-1, dec_out.size(2)),
                                           attn.view(-1, attn.size(2)),
-                                          src_map)
+                                          src_map, tags)
             # here we have scores [tgt_lenxbatch, vocab] or [beamxbatch, vocab]
             if batch_offset is None:
                 scores = scores.view(batch.batch_size, -1, scores.size(-1))
