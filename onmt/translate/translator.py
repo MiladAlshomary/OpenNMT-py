@@ -101,6 +101,7 @@ class Translator(object):
             block_ngram_repeat=0,
             ignore_when_blocking=frozenset(),
             replace_unk=False,
+            constraint_file=None,
             data_type="text",
             verbose=False,
             report_bleu=False,
