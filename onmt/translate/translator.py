@@ -320,6 +320,7 @@ class Translator(object):
 
         start_time = time.time()
 
+        import json
         with codecs.open(self.constraint_file, "r") as mask_file:
             for batch, mask in zip(data_iter, mask_file):
                 con = json.loads(mask)
