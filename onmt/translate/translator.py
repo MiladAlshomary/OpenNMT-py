@@ -122,6 +122,7 @@ class Translator(object):
         self._tgt_bos_idx = self._tgt_vocab.stoi[tgt_field.init_token]
         self._tgt_unk_idx = self._tgt_vocab.stoi[tgt_field.unk_token]
         self._tgt_vocab_len = len(self._tgt_vocab)
+        self.constraint_file = constraint_file
 
         self._gpu = gpu
         self._use_cuda = gpu > -1
