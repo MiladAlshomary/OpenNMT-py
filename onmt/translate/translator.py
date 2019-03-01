@@ -601,7 +601,7 @@ class Translator(object):
             max_length,
             min_length=0,
             n_best=1,
-            return_attention=False):
+            return_attention=False, tags=[]):
         # TODO: support these blacklisted features.
         assert not self.dump_beam
 
@@ -667,7 +667,7 @@ class Translator(object):
                 memory_lengths=memory_lengths,
                 src_map=src_map,
                 step=step,
-                batch_offset=beam._batch_offset)
+                batch_offset=beam._batch_offset, tags=tags)
 
             beam.advance(log_probs, attn)
             any_beam_is_finished = beam.is_finished.any()
