@@ -326,7 +326,6 @@ class Translator(object):
                 for batch, mask in zip(data_iter, mask_file):
                     con = json.loads(mask)
                     words = con['words']
-                    self.out_file.write('\n'.join(con['words']) + '\n')
                     probs = [p[0] for p in con['logits'][:len(words)]]
                     tags = [1 if p > 0.9 else 0 for p in probs]
 
