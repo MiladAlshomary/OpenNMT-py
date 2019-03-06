@@ -327,7 +327,7 @@ class Translator(object):
                     con = json.loads(mask)
                     words = con['words']
                     probs = [p[0] for p in con['logits'][:len(words)]]
-                    tags = [1 if p > 0.9 else 0 for p in probs]
+                    tags = [1 if p > 0.2 else 0 for p in probs]
 
                     batch_data = self.translate_batch(
                         batch, data.src_vocabs, attn_debug, tags
