@@ -123,9 +123,13 @@ class CopyGenerator(nn.Module):
         #Mask the attention
         if tags != []:
             tags = Variable(torch.cuda.FloatTensor(tags))
-            attn = torch.mul(attn, tags) * 2
-        
-        mul_attn = torch.mul(attn, p_copy)
+            attn = torch.mul(attn, tags)
+            mul_attn = torch.mul(attn, p_copy)
+            mul_sum  = mul_attn.sum(1)
+            mul_attn = torch.div(mul_attn, mul_sum.unsqueeze(1).expand_as(mul_attn))
+        else:
+            mul_attn = torch.mul(attn, p_copy)
+
         copy_prob = torch.bmm(
             mul_attn.view(-1, batch, slen).transpose(0, 1),
             src_map.transpose(0, 1)
