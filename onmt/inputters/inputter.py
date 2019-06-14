@@ -590,6 +590,89 @@ class DatasetLazyIter(object):
                         return
 
 
+class DatasetBlendLazyIter(object):
+    """Yield data from sharded dataset files.
+
+    Args:
+        dataset_paths: a list containing the locations of dataset files.
+        fields (dict[str, Field]): fields dict for the
+            datasets.
+        batch_size (int): batch size.
+        batch_size_fn: custom batch process function.
+        device: See :class:`OrderedIterator` ``device``.
+        is_train (bool): train or valid?
+    """
+
+    def __init__(self, dataset_paths, fields, batch_size, batch_size_fn,
+                 batch_size_multiple, device, is_train, repeat=True,
+                 num_batches_multiple=1):
+        self._paths = dataset_paths
+        self.fields = fields
+        self.batch_size = batch_size
+        self.batch_size_fn = batch_size_fn
+        self.batch_size_multiple = batch_size_multiple
+        self.device = device
+        self.is_train = is_train
+        self.repeat = repeat
+        self.num_batches_multiple = num_batches_multiple
+        self.sample_ratio = 0.5
+
+    def _iter_dataset(self, path, sample_ratio=None):
+        cur_dataset = torch.load(path)
+
+        if sample_ratio != None:
+            #take a sample of cur_dataset
+            logger.info('Sampling %f, of %s' % (sample_ratio, cur_dataset))
+            cur_dataset, _ = cur_dataset.split(split_ratio=ratio)
+
+        logger.info('Loading dataset from %s, number of examples: %d' %
+                    (path, len(cur_dataset)))
+        cur_dataset.fields = self.fields
+        cur_iter = OrderedIterator(
+            dataset=cur_dataset,
+            batch_size=self.batch_size,
+            batch_size_multiple=self.batch_size_multiple,
+            batch_size_fn=self.batch_size_fn,
+            device=self.device,
+            train=self.is_train,
+            sort=False,
+            sort_within_batch=True,
+            repeat=False
+        )
+        for batch in cur_iter:
+            yield batch
+
+        cur_dataset.examples = None
+        gc.collect()
+        del cur_dataset
+        gc.collect()
+
+    def __iter__(self):
+        num_batches = 0
+        paths = self._paths
+        if self.is_train and self.repeat:
+            # Cycle through the shards indefinitely.
+            paths = cycle(paths)
+
+        for path in paths:
+            if 'wld' in path:
+                for batch in self._iter_dataset(path, sample_ratio = self.sample_ratio):
+                    yield batch
+                    num_batches += 1
+        if self.is_train and not self.repeat and \
+           num_batches % self.num_batches_multiple != 0:
+            # When the dataset is not repeated, we might need to ensure that
+            # the number of returned batches is the multiple of a given value.
+            # This is important for multi GPU training to ensure that all
+            # workers have the same number of batches to process.
+            for path in paths:
+                for batch in self._iter_dataset(path):
+                    yield batch
+                    num_batches += 1
+                    if num_batches % self.num_batches_multiple == 0:
+                        return
+
+
 def max_tok_len(new, count, sofar):
     """
     In token batching scheme, the number of sequences is limited
@@ -627,7 +710,7 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
 
     device = "cuda" if opt.gpu_ranks else "cpu"
 
-    return DatasetLazyIter(
+    return DatasetBlendLazyIter(
         dataset_paths,
         fields,
         batch_size,
