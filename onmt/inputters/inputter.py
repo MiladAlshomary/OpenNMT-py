@@ -622,10 +622,10 @@ class DatasetBlendLazyIter(object):
     def _iter_dataset(self, path, sample_ratio=None):
         cur_dataset = torch.load(path)
 
-        if sample_ratio != None:
-            #take a sample of cur_dataset
-            logger.info('Sampling %f, of %s' % (sample_ratio, cur_dataset))
-            cur_dataset, _ = cur_dataset.split(split_ratio=sample_ratio)
+        # if sample_ratio != None:
+        #     #take a sample of cur_dataset
+        #     logger.info('Sampling %f, of %s' % (sample_ratio, path))
+        #     cur_dataset, _ = cur_dataset.split(split_ratio=sample_ratio)
 
         logger.info('Loading dataset from %s, number of examples: %d' %
                     (path, len(cur_dataset)))
@@ -655,7 +655,6 @@ class DatasetBlendLazyIter(object):
         wld_paths = self._wld_paths
         all_paths = wld_paths + sld_paths
 
-        #TODO handle cycle ..
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
             all_paths = cycle(all_paths)
