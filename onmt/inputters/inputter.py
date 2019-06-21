@@ -625,7 +625,7 @@ class DatasetBlendLazyIter(object):
         if sample_ratio != None:
             #take a sample of cur_dataset
             logger.info('Sampling %f, of %s' % (sample_ratio, path))
-            cur_dataset, _ = cur_dataset.split(split_ratio=sample_ratio)
+            cur_dataset.sample(sample_ratio)
 
         print(type(cur_dataset))
         logger.info('Loading dataset from %s, number of examples: %d' %

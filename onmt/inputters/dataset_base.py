@@ -4,6 +4,7 @@ from itertools import chain, starmap
 from collections import Counter
 
 import torch
+import numpy as np
 from torchtext.data import Dataset as TorchtextDataset
 from torchtext.data import Example
 from torchtext.vocab import Vocab
@@ -151,3 +152,6 @@ class Dataset(TorchtextDataset):
         if remove_fields:
             self.fields = []
         torch.save(self, path)
+
+    def sample(self, percentage):
+        self.examples = np.random.choice(self.examples, size=int(len(self.examples) * percentage))
