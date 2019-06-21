@@ -604,7 +604,7 @@ class DatasetBlendLazyIter(object):
     """
 
     def __init__(self, sld_dataset_paths, wld_dataset_paths, fields, batch_size, batch_size_fn,
-                 batch_size_multiple, device, is_train, repeat=True,
+                 batch_size_multiple, device, is_train, repeat=False,
                  num_batches_multiple=1):
         self._sld_paths = sld_dataset_paths
         self._wld_paths = wld_dataset_paths
