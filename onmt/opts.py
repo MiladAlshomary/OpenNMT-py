@@ -302,19 +302,9 @@ def train_opts(parser):
     """ Training and saving options """
 
     group = parser.add_argument_group('General')
-    # group.add('--data', '-data', required=True,
-    #           help='Path prefix to the ".train.pt" and '
-    #                '".valid.pt" file path from preprocess.py')
-
-    # Blendnet options
-    group.add('--wld_data', '-wld_data', required=True,
+    group.add('--data', '-data', required=True,
               help='Path prefix to the ".train.pt" and '
                    '".valid.pt" file path from preprocess.py')
-
-    group.add('--sld_data', '-sld_data', required=True,
-              help='Path prefix to the ".train.pt" and '
-                   '".valid.pt" file path from preprocess.py')
-
 
     group.add('--save_model', '-save_model', default='model',
               help="Model filename (the model will be saved as "

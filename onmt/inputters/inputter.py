@@ -719,8 +719,8 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
     device = "cuda" if opt.gpu_ranks else "cpu"
 
     if is_train:
-        sld_dataset_paths = list(sorted(glob.glob(opt.sld_data + 'train.sld*.pt')))
-        wld_dataset_paths = list(sorted(glob.glob(opt.sld_data + 'train.wld*.pt')))
+        sld_dataset_paths = list(sorted(glob.glob(opt.data + 'train.sld*.pt')))
+        wld_dataset_paths = list(sorted(glob.glob(opt.data + 'train.wld*.pt')))
 
         if not sld_dataset_paths and not wld_dataset_paths:
             return None
