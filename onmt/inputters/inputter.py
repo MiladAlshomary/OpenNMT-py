@@ -606,8 +606,7 @@ class DatasetBlendLazyIter(object):
     def __init__(self, sld_dataset_paths, wld_dataset_paths, fields, batch_size, batch_size_fn,
                  batch_size_multiple, device, is_train, repeat=False,
                  num_batches_multiple=1):
-        print(repeat)
-        print('=============')
+
         self._sld_paths = sld_dataset_paths
         self._wld_paths = wld_dataset_paths
         self.fields = fields
@@ -654,21 +653,17 @@ class DatasetBlendLazyIter(object):
         num_batches = 0
         sld_paths = self._sld_paths
         wld_paths = self._wld_paths
-        
+        all_paths = wld_paths + sld_paths
+
         #TODO handle cycle ..
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
-            paths = cycle(paths)
+            all_paths = cycle(all_paths)
 
         #Loop over the wld data
-        for path in wld_paths:
-            for batch in self._iter_dataset(path, sample_ratio = self.sample_ratio):
-                yield batch
-                num_batches += 1
-
-        #Loop over the sld data
-        for path in sld_paths:
-            for batch in self._iter_dataset(path):
+        for path in all_paths:
+            sample_ratio = self.sample_ratio if 'wld' in path else None
+            for batch in self._iter_dataset(path, sample_ratio = sample_ratio):
                 yield batch
                 num_batches += 1
 
