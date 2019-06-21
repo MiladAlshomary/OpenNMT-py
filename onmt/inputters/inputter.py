@@ -603,10 +603,11 @@ class DatasetBlendLazyIter(object):
         is_train (bool): train or valid?
     """
 
-    def __init__(self, dataset_paths, fields, batch_size, batch_size_fn,
+    def __init__(self, sld_dataset_paths, wld_dataset_paths, fields, batch_size, batch_size_fn,
                  batch_size_multiple, device, is_train, repeat=True,
                  num_batches_multiple=1):
-        self._paths = dataset_paths
+        self._sld_paths = sld_dataset_paths
+        self._wld_paths = wld_dataset_paths
         self.fields = fields
         self.batch_size = batch_size
         self.batch_size_fn = batch_size_fn
@@ -649,23 +650,33 @@ class DatasetBlendLazyIter(object):
 
     def __iter__(self):
         num_batches = 0
-        paths = self._paths
+        sld_paths = self._sld_paths
+        wld_paths = self._wld_paths
+        
+        #TODO handle cycle ..
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
             paths = cycle(paths)
 
-        for path in paths:
-            if 'wld' in path:
-                for batch in self._iter_dataset(path, sample_ratio = self.sample_ratio):
-                    yield batch
-                    num_batches += 1
+        #Loop over the wld data
+        for path in wld_paths:
+            for batch in self._iter_dataset(path, sample_ratio = self.sample_ratio):
+                yield batch
+                num_batches += 1
+
+        #Loop over the sld data
+        for path in sld_paths:
+            for batch in self._iter_dataset(path):
+                yield batch
+                num_batches += 1
+
         if self.is_train and not self.repeat and \
            num_batches % self.num_batches_multiple != 0:
             # When the dataset is not repeated, we might need to ensure that
             # the number of returned batches is the multiple of a given value.
             # This is important for multi GPU training to ensure that all
             # workers have the same number of batches to process.
-            for path in paths:
+            for path in sld_paths:
                 for batch in self._iter_dataset(path):
                     yield batch
                     num_batches += 1
@@ -700,23 +711,44 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
     to iterate over. We implement simple ordered iterator strategy here,
     but more sophisticated strategy like curriculum learning is ok too.
     """
-    dataset_paths = list(sorted(
-        glob.glob(opt.data + '.' + corpus_type + '*.pt')))
-    if not dataset_paths:
-        return None
+
     batch_size = opt.batch_size if is_train else opt.valid_batch_size
     batch_fn = max_tok_len if is_train and opt.batch_type == "tokens" else None
     batch_size_multiple = 8 if opt.model_dtype == "fp16" else 1
 
     device = "cuda" if opt.gpu_ranks else "cpu"
 
-    return DatasetBlendLazyIter(
-        dataset_paths,
-        fields,
-        batch_size,
-        batch_fn,
-        batch_size_multiple,
-        device,
-        is_train,
-        repeat=not opt.single_pass,
-        num_batches_multiple=opt.accum_count * opt.world_size)
+    if is_train:
+        sld_dataset_paths = list(sorted(glob.glob(opt.sld_data + 'train.sld*.pt')))
+        wld_dataset_paths = list(sorted(glob.glob(opt.sld_data + 'train.wld*.pt')))
+
+        if not sld_dataset_paths and not wld_dataset_paths:
+            return None
+
+        return DatasetBlendLazyIter(
+            sld_dataset_paths,
+            wld_dataset_paths,
+            fields,
+            batch_size,
+            batch_fn,
+            batch_size_multiple,
+            device,
+            is_train,
+            repeat=not opt.single_pass,
+            num_batches_multiple=opt.accum_count * opt.world_size)
+    else:
+        dataset_paths = list(sorted(glob.glob(opt.data + '.' + corpus_type + '*.pt')))
+
+        if not dataset_paths:
+            return None
+        
+        return DatasetLazyIter(
+            dataset_paths,
+            fields,
+            batch_size,
+            batch_fn,
+            batch_size_multiple,
+            device,
+            is_train,
+            repeat=not opt.single_pass,
+            num_batches_multiple=opt.accum_count * opt.world_size)        
