@@ -668,8 +668,8 @@ class DatasetBlendLazyIter(object):
             if num_of_passes % num_files == 0:
                 sample_ratio = sample_ratio * 0.8
 
-            sample_ratio = sample_ratio if 'wld' in path else None
-            for batch in self._iter_dataset(path, sample_ratio = sample_ratio):
+            pass_sample_ratio = sample_ratio if 'wld' in path else None
+            for batch in self._iter_dataset(path, sample_ratio = pass_sample_ratio):
                 yield batch
                 num_batches += 1
 
