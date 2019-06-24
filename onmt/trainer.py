@@ -240,7 +240,9 @@ class Trainer(object):
             if train_steps > 0 and step >= train_steps:
                 break
 
+        print('Finished training.... Now saving the model')
         if self.model_saver is not None:
+            print('inside the if statement to save the model....')
             self.model_saver.save(step, moving_average=self.moving_average)
         return total_stats
 
