@@ -92,8 +92,6 @@ def main(opt, device_id):
 
     # Build model saver
     model_saver = build_model_saver(model_opt, opt, model, fields, optim)
-    print(model_saver)
-    print('=========================')
     trainer = build_trainer(
         opt, device_id, model, fields, optim, model_saver=model_saver)
 
@@ -110,8 +108,6 @@ def main(opt, device_id):
         logger.warning("Option single_pass is enabled, ignoring train_steps.")
         train_steps = 0
     
-    print(opt.save_checkpoint_steps)
-    print('===========================')
     trainer.train(
         train_iter,
         train_steps,
