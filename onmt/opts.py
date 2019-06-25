@@ -319,7 +319,7 @@ def train_opts(parser):
                    "<save_model>_N.pt where N is the number "
                    "of steps")
 
-    group.add('--enable_blend', '-enable_blend', default=True,
+    group.add('--enable_blend', '-enable_blend', default=False,
               help="Enable training with blending fashion..")
     group.add('--data_level', '-data_level', default='wld',
               help="Train on wld or the sld")
