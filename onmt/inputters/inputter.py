@@ -724,8 +724,8 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
     device = "cuda" if opt.gpu_ranks else "cpu"
 
     if opt.enable_blend:
-        sld_dataset_paths = list(sorted(glob.glob(opt.data + '.train.sld*.pt')))
-        wld_dataset_paths = list(sorted(glob.glob(opt.data + '.train.wld*.pt')))
+        sld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_sld*.pt')))
+        wld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_wld*.pt')))
 
         if not sld_dataset_paths and not wld_dataset_paths:
             return None
@@ -744,7 +744,7 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
     else:
 
         if is_train:
-            print(opt.data + '.train.'+ opt.data_level+'*.pt')
+            print(opt.data + '.train_'+ opt.data_level+'.*.pt')
             dataset_paths = list(sorted(glob.glob(opt.data + '.train.'+ opt.data_level+'*.pt')))
             print(dataset_paths)
         else:
