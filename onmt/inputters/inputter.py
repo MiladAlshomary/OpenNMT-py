@@ -744,7 +744,7 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
     else:
 
         if is_train:
-            print(opt.data + '.train_'+ opt.data_level+'.*.pt')
+            print(opt.data + '.train_'+ opt.data_level+'*.pt')
             dataset_paths = list(sorted(glob.glob(opt.data + '.train.'+ opt.data_level+'*.pt')))
             print(dataset_paths)
         else:
