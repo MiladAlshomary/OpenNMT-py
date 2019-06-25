@@ -105,9 +105,10 @@ class ArgumentParser(cfargparse.ArgumentParser):
             "-shuffle is not implemented. Please shuffle \
             your data before pre-processing."
 
-        assert os.path.isfile(opt.train_src) \
-            and os.path.isfile(opt.train_tgt), \
-            "Please check path of your train src and tgt files!"
+        #TODO fix this..
+        # assert os.path.isfile(opt.train_src) \
+        #     and os.path.isfile(opt.train_tgt), \
+        #     "Please check path of your train src and tgt files!"
 
         assert not opt.valid_src or os.path.isfile(opt.valid_src), \
             "Please check path of your valid src file!"

@@ -189,10 +189,18 @@ def preprocess_opts(parser):
               help="Type of the source input. "
                    "Options are [text|img|audio].")
 
-    group.add('--train_src', '-train_src', required=True,
+    group.add('--train_src', '-train_src', required=False,
               help="Path to the training source data")
-    group.add('--train_tgt', '-train_tgt', required=True,
+    group.add('--train_tgt', '-train_tgt', required=False,
               help="Path to the training target data")
+    group.add('--train_wld_src', '-train_wld_src', required=False,
+              help="Path to the wld training source data")
+    group.add('--train_wld_tgt', '-train_wld_tgt', required=False,
+              help="Path to the wld training target data")
+    group.add('--train_sld_src', '-train_sld_src', required=False,
+              help="Path to the sld training source data")
+    group.add('--train_sld_tgt', '-train_sld_tgt', required=False,
+              help="Path to the sld training target data")
     group.add('--valid_src', '-valid_src',
               help="Path to the validation source data")
     group.add('--valid_tgt', '-valid_tgt',
@@ -310,6 +318,9 @@ def train_opts(parser):
               help="Model filename (the model will be saved as "
                    "<save_model>_N.pt where N is the number "
                    "of steps")
+
+    group.add('--enable_blend', '-enable_blend', default=True,
+              help="Enable training with blending fashion..")
 
     group.add('--save_checkpoint_steps', '-save_checkpoint_steps',
               type=int, default=5000,

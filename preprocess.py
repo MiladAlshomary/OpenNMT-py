@@ -28,15 +28,15 @@ def check_existing_pt_files(opt):
             sys.exit(1)
 
 
-def build_save_dataset(corpus_type, fields, src_reader, tgt_reader, opt):
-    assert corpus_type in ['train', 'valid']
+def build_save_dataset(corpus_type, src, tgt, fields, src_reader, tgt_reader, opt):
+    assert corpus_type in ['train', 'valid', 'train_sld', 'train_wld']
 
-    if corpus_type == 'train':
-        src = opt.train_src
-        tgt = opt.train_tgt
-    else:
-        src = opt.valid_src
-        tgt = opt.valid_tgt
+    # if corpus_type == 'train':
+    #     src = opt.train_src
+    #     tgt = opt.train_tgt
+    # else:
+    #     src = opt.valid_src
+    #     tgt = opt.valid_tgt
 
     logger.info("Reading source and target files: %s %s." % (src, tgt))
 
@@ -110,9 +110,15 @@ def main(opt):
     init_logger(opt.log_file)
     logger.info("Extracting features...")
 
-    src_nfeats = count_features(opt.train_src) if opt.data_type == 'text' \
-        else 0
-    tgt_nfeats = count_features(opt.train_tgt)  # tgt always text so far
+    if opt.train_wld_src and opt.train_sld_src:
+        src_nfeats = count_features(opt.train_sld_src) if opt.data_type == 'text' \
+            else 0
+        tgt_nfeats = count_features(opt.train_sld_tgt)  # tgt always text so far
+    else:
+        src_nfeats = count_features(opt.train_src) if opt.data_type == 'text' \
+            else 0
+        tgt_nfeats = count_features(opt.train_tgt)  # tgt always text so far
+    
     logger.info(" * number of source features: %d." % src_nfeats)
     logger.info(" * number of target features: %d." % tgt_nfeats)
 
@@ -128,13 +134,25 @@ def main(opt):
     src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
     tgt_reader = inputters.str2reader["text"].from_opt(opt)
 
-    logger.info("Building & saving training data...")
-    train_dataset_files = build_save_dataset(
-        'train', fields, src_reader, tgt_reader, opt)
+    if opt.train_wld_src and opt.train_sld_src:
+        logger.info("Building & saving WLD training data...")
+        train_wld_dataset_files = build_save_dataset(
+            'train_wld', opt.train_wld_src, opt.train_wld_tgt, fields, src_reader, tgt_reader, opt)
+
+        logger.info("Building & saving SLD training data...")
+        train_sld_dataset_files = build_save_dataset(
+            'train_sld', opt.train_sld_src, opt.train_sld_tgt, fields, src_reader, tgt_reader, opt)
+
+        train_dataset_files = train_wld_dataset_files + train_sld_dataset_files
+
+    else:
+        logger.info("Building & saving training data...")
+        train_dataset_files = build_save_dataset(
+            'train', opt.train_src, opt.train_tgt, fields, src_reader, tgt_reader, opt)
 
     if opt.valid_src and opt.valid_tgt:
         logger.info("Building & saving validation data...")
-        build_save_dataset('valid', fields, src_reader, tgt_reader, opt)
+        build_save_dataset('valid', opt.valid_src, opt.valid_tgt, fields, src_reader, tgt_reader, opt)
 
     logger.info("Building & saving vocabulary...")
     build_save_vocab(train_dataset_files, fields, opt)
