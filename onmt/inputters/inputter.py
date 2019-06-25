@@ -617,7 +617,7 @@ class DatasetBlendLazyIter(object):
         self.is_train = is_train
         self.repeat = repeat
         self.num_batches_multiple = num_batches_multiple
-        self.sample_ratio = 0.5
+        self.blend_alpha = 0.2
 
     def _iter_dataset(self, path, sample_ratio=None):
         cur_dataset = torch.load(path)
@@ -666,7 +666,7 @@ class DatasetBlendLazyIter(object):
         for path in all_paths:
             #update the sample_ratio every epoch
             if num_of_passes % num_files == 0:
-                sample_ratio = sample_ratio * 0.8
+                sample_ratio = pow(self.blend_alpha, num_of_passes)
 
             pass_sample_ratio = sample_ratio if 'wld' in path else None
             for batch in self._iter_dataset(path, sample_ratio = pass_sample_ratio):

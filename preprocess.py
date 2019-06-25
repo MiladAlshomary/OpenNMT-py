@@ -40,11 +40,11 @@ def build_save_dataset(corpus_type, src, tgt, fields, src_reader, tgt_reader, op
 
     logger.info("Reading source and target files: %s %s." % (src, tgt))
 
-    src_shards = split_corpus(src, opt.shard_size)
-    tgt_shards = split_corpus(tgt, opt.shard_size)
+    src_shards  = split_corpus(src, opt.shard_size)
+    tgt_shards  = split_corpus(tgt, opt.shard_size)
     shard_pairs = zip(src_shards, tgt_shards)
     dataset_paths = []
-    if (corpus_type == "train" or opt.filter_valid) and tgt is not None:
+    if (corpus_type in ("train", "train_sld", "train_wld") or opt.filter_valid) and tgt is not None:
         filter_pred = partial(
             inputters.filter_example, use_src_len=opt.data_type == "text",
             max_src_len=opt.src_seq_length, max_tgt_len=opt.tgt_seq_length)
