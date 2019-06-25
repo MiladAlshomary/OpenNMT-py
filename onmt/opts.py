@@ -321,6 +321,8 @@ def train_opts(parser):
 
     group.add('--enable_blend', '-enable_blend', default=True,
               help="Enable training with blending fashion..")
+    group.add('--data_level', '-data_level', default='wld',
+              help="Train on wld or the sld")
 
     group.add('--save_checkpoint_steps', '-save_checkpoint_steps',
               type=int, default=5000,
