@@ -742,8 +742,9 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
             repeat=not opt.single_pass,
             num_batches_multiple=opt.accum_count * opt.world_size)
     else:
+        print(opt.data + '.train.'+ opt.data_level+'*.pt')
         dataset_paths = list(sorted(glob.glob(opt.data + '.train.'+ opt.data_level+'*.pt')))
-
+        print(dataset_paths)
         if not dataset_paths:
             return None
         
