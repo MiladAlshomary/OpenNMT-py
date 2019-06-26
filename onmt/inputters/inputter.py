@@ -724,32 +724,44 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
 
     device = "cuda" if opt.gpu_ranks else "cpu"
 
-    if opt.enable_blend:
-        sld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_sld*.pt')))
-        wld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_wld*.pt')))
+    if is_train:
+        if opt.enable_blend:
+            sld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_sld*.pt')))
+            wld_dataset_paths = list(sorted(glob.glob(opt.data + '.train_wld*.pt')))
 
-        if not sld_dataset_paths and not wld_dataset_paths:
-            return None
+            if not sld_dataset_paths and not wld_dataset_paths:
+                return None
 
-        return DatasetBlendLazyIter(
-            sld_dataset_paths,
-            wld_dataset_paths,
-            fields,
-            batch_size,
-            batch_fn,
-            batch_size_multiple,
-            device,
-            is_train,
-            repeat=not opt.single_pass,
-            num_batches_multiple=opt.accum_count * opt.world_size)
-    else:
-
-        if is_train:
-            dataset_paths = list(sorted(glob.glob(opt.data + '.train_'+ opt.data_level+'*.pt')))
-            print(dataset_paths)
+            return DatasetBlendLazyIter(
+                sld_dataset_paths,
+                wld_dataset_paths,
+                fields,
+                batch_size,
+                batch_fn,
+                batch_size_multiple,
+                device,
+                is_train,
+                repeat=not opt.single_pass,
+                num_batches_multiple=opt.accum_count * opt.world_size)
         else:
-            dataset_paths = list(sorted(glob.glob(opt.data + '.valid*.pt')))
-            print(dataset_paths)
+            dataset_paths = list(sorted(glob.glob(opt.data + '.train_'+ opt.data_level+'*.pt')))
+
+            if not dataset_paths:
+                return None
+            
+            return DatasetLazyIter(
+                dataset_paths,
+                fields,
+                batch_size,
+                batch_fn,
+                batch_size_multiple,
+                device,
+                is_train,
+                repeat=not opt.single_pass,
+                num_batches_multiple=opt.accum_count * opt.world_size)       
+
+    else:
+        dataset_paths = list(sorted(glob.glob(opt.data + '.valid*.pt')))
 
         if not dataset_paths:
             return None
@@ -763,4 +775,4 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
             device,
             is_train,
             repeat=not opt.single_pass,
-            num_batches_multiple=opt.accum_count * opt.world_size)        
+            num_batches_multiple=opt.accum_count * opt.world_size)      
