@@ -663,11 +663,11 @@ class DatasetBlendLazyIter(object):
 
         #Loop over the wld data
         num_of_passes = 0
-        sample_ratio  = 1.0
         for path in all_paths:
             #update the sample_ratio every epoch
             if num_of_passes % num_files == 0:
-                sample_ratio = pow(self.blend_alpha, num_of_passes)
+                epoc_num = num_of_passes // num_files
+                sample_ratio = pow(self.blend_alpha, epoc_num)
 
             pass_sample_ratio = sample_ratio if 'wld' in path else None
             for batch in self._iter_dataset(path, sample_ratio = pass_sample_ratio):
