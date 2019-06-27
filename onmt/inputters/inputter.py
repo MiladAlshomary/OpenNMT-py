@@ -605,7 +605,7 @@ class DatasetBlendLazyIter(object):
 
     def __init__(self, sld_dataset_paths, wld_dataset_paths, fields, batch_size, batch_size_fn,
                  batch_size_multiple, device, is_train, repeat=False,
-                 num_batches_multiple=1):
+                 num_batches_multiple=1, blend_alpha=1.0):
 
         self._sld_paths = sld_dataset_paths
         self._wld_paths = wld_dataset_paths
@@ -617,7 +617,7 @@ class DatasetBlendLazyIter(object):
         self.is_train = is_train
         self.repeat = repeat
         self.num_batches_multiple = num_batches_multiple
-        self.blend_alpha = 0.2
+        self.blend_alpha = blend_alpha
 
     def _iter_dataset(self, path, sample_ratio=None):
         cur_dataset = torch.load(path)
@@ -742,7 +742,8 @@ def build_dataset_iter(corpus_type, fields, opt, is_train=True):
                 device,
                 is_train,
                 repeat=not opt.single_pass,
-                num_batches_multiple=opt.accum_count * opt.world_size)
+                num_batches_multiple=opt.accum_count * opt.world_size,
+                blend_alpha=opt.blend_alpha)
         else:
             dataset_paths = list(sorted(glob.glob(opt.data + '.train_'+ opt.data_level+'*.pt')))
 

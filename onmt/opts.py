@@ -321,6 +321,8 @@ def train_opts(parser):
 
     group.add('--enable_blend', '-enable_blend', default=False,
               help="Enable training with blending fashion..")
+    group.add('--blend_alpha', '-blend_alpha', default=1.0,
+              help="The rate of WLD blending")
     group.add('--data_level', '-data_level', default='wld',
               help="Train on wld or the sld")
 
