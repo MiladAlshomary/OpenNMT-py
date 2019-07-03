@@ -746,6 +746,7 @@ class Translator(object):
         results["scores"] = beam.scores
         results["predictions"] = beam.predictions
         results["attention"] = beam.attention
+        results["enc_states"] = enc_states
         return results
 
     # This is left in the code for now, but unsued

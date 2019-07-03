@@ -655,7 +655,6 @@ class DatasetBlendLazyIter(object):
         wld_paths = self._wld_paths
         all_paths = wld_paths + sld_paths
 
-        print(all_paths)
         num_files = len(all_paths)
         if self.is_train and self.repeat:
             # Cycle through the shards indefinitely.
