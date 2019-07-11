@@ -131,7 +131,7 @@ class Translation(object):
         self.pred_scores = pred_scores
         self.gold_sent = tgt_sent
         self.gold_score = gold_score
-        self.enc_states
+        self.enc_states = enc_states
 
     def log(self, sent_number):
         """
