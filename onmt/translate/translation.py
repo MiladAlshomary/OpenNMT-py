@@ -62,7 +62,7 @@ class TranslationBuilder(object):
                         translation_batch["attention"],
                         translation_batch["gold_score"],
                         batch.indices.data, translation_batch["enc_states"]),
-                    key=lambda x: x[-1])))
+                    key=lambda x: x[-2])))
 
         # Sorting
         inds, perm = torch.sort(batch.indices)
