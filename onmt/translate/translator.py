@@ -317,7 +317,7 @@ class Translator(object):
 
         all_scores = []
         all_predictions = []
-
+        all_enc_states = []
         start_time = time.time()
 
         import json
@@ -384,6 +384,7 @@ class Translator(object):
                 translations = xlation_builder.from_batch(batch_data)
 
                 for trans in translations:
+                    all_enc_states += trans['enc_states']
                     all_scores += [trans.pred_scores[:self.n_best]]
                     pred_score_total += trans.pred_scores[0]
                     pred_words_total += len(trans.pred_sents[0])
@@ -455,7 +456,7 @@ class Translator(object):
             import json
             json.dump(self.translator.beam_accum,
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
-        return all_scores, all_predictions
+        return all_scores, all_predictions, all_enc_states
 
     def _translate_random_sampling(
             self,
@@ -546,7 +547,8 @@ class Translator(object):
 
         results["scores"] = random_sampler.scores
         results["predictions"] = random_sampler.predictions
-        results["attention"] = random_sampler.attention
+        results["attention"]  = random_sampler.attention
+        results["enc_states"] = enc_states
         return results
 
     def translate_batch(self, batch, src_vocabs, attn_debug, tags):
