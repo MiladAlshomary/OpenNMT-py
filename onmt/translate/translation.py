@@ -56,13 +56,13 @@ class TranslationBuilder(object):
                len(translation_batch["predictions"]))
         batch_size = batch.batch_size
 
-        preds, pred_score, attn, gold_score, indices, enc_states = list(zip(
+        preds, pred_score, attn, gold_score, indices = list(zip(
             *sorted(zip(translation_batch["predictions"],
                         translation_batch["scores"],
                         translation_batch["attention"],
                         translation_batch["gold_score"],
-                        batch.indices.data, translation_batch["enc_states"]),
-                    key=lambda x: x[-2])))
+                        batch.indices.data),
+                    key=lambda x: x[-1])))
 
         # Sorting
         inds, perm = torch.sort(batch.indices)
@@ -82,9 +82,7 @@ class TranslationBuilder(object):
             else:
                 src_vocab = None
                 src_raw = None
-            print(len(preds))
-            print(len(attn))
-            print(self.n_best)
+
             pred_sents = [self._build_target_tokens(
                 src[:, b] if src is not None else None,
                 src_vocab, src_raw,
@@ -100,8 +98,7 @@ class TranslationBuilder(object):
             translation = Translation(
                 src[:, b] if src is not None else None,
                 src_raw, pred_sents, attn[b], pred_score[b],
-                gold_sent, gold_score[b],
-                enc_states= enc_states[b]
+                gold_sent, gold_score[b]
             )
             translations.append(translation)
 
@@ -126,7 +123,7 @@ class Translation(object):
                  "gold_sent", "gold_score", "enc_states"]
 
     def __init__(self, src, src_raw, pred_sents,
-                 attn, pred_scores, tgt_sent, gold_score, enc_states=[]):
+                 attn, pred_scores, tgt_sent, gold_score):
         self.src = src
         self.src_raw = src_raw
         self.pred_sents = pred_sents
@@ -134,7 +131,6 @@ class Translation(object):
         self.pred_scores = pred_scores
         self.gold_sent = tgt_sent
         self.gold_score = gold_score
-        self.enc_states = enc_states
 
     def log(self, sent_number):
         """

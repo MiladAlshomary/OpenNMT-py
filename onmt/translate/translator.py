@@ -317,7 +317,6 @@ class Translator(object):
 
         all_scores = []
         all_predictions = []
-        all_enc_states = []
         start_time = time.time()
 
         import json
@@ -384,7 +383,6 @@ class Translator(object):
                 translations = xlation_builder.from_batch(batch_data)
 
                 for trans in translations:
-                    all_enc_states += trans['enc_states']
                     all_scores += [trans.pred_scores[:self.n_best]]
                     pred_score_total += trans.pred_scores[0]
                     pred_words_total += len(trans.pred_sents[0])
@@ -456,7 +454,47 @@ class Translator(object):
             import json
             json.dump(self.translator.beam_accum,
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
-        return all_scores, all_predictions, all_enc_states
+        return all_scores, all_predictions
+
+
+    def encode_data(
+        self,
+        src,
+        tgt=None,
+        src_dir=None,
+        batch_size=None,
+        attn_debug=False):
+            
+        if batch_size is None:
+            raise ValueError("batch_size must be set")
+
+        data = inputters.Dataset(
+            self.fields,
+            readers=([self.src_reader, self.tgt_reader]
+                     if tgt else [self.src_reader]),
+            data=[("src", src), ("tgt", tgt)] if tgt else [("src", src)],
+            dirs=[src_dir, None] if tgt else [src_dir],
+            sort_key=inputters.str2sortkey[self.data_type],
+            filter_pred=self._filter_pred
+        )
+
+        data_iter = inputters.OrderedIterator(
+            dataset=data,
+            device=self._dev,
+            batch_size=batch_size,
+            train=False,
+            sort=False,
+            sort_within_batch=True,
+            shuffle=False
+        )
+
+        xlation_builder = onmt.translate.TranslationBuilder(
+            data, self.fields, self.n_best, self.replace_unk, tgt
+        )
+
+        for batch in data_iter:
+            yield self._run_encoder(batch)
+
 
     def _translate_random_sampling(
             self,
@@ -745,13 +783,9 @@ class Translator(object):
             self.model.decoder.map_state(
                 lambda state, dim: state.index_select(dim, select_indices))
 
-        print(len(enc_states))
-        print(enc_states[-1].size())
-
         results["scores"] = beam.scores
         results["predictions"] = beam.predictions
         results["attention"] = beam.attention
-        results["enc_states"] = enc_states[-1]
         return results
 
     # This is left in the code for now, but unsued
