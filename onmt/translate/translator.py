@@ -745,8 +745,7 @@ class Translator(object):
             self.model.decoder.map_state(
                 lambda state, dim: state.index_select(dim, select_indices))
 
-        print(type(enc_states))
-        print(enc_states.size())
+        print(len(enc_states))
         print(enc_states[-1].size())
 
         results["scores"] = beam.scores
