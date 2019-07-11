@@ -82,6 +82,9 @@ class TranslationBuilder(object):
             else:
                 src_vocab = None
                 src_raw = None
+            print(len(preds))
+            print(len(attn))
+            print(self.n_best)
             pred_sents = [self._build_target_tokens(
                 src[:, b] if src is not None else None,
                 src_vocab, src_raw,
