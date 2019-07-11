@@ -745,10 +745,14 @@ class Translator(object):
             self.model.decoder.map_state(
                 lambda state, dim: state.index_select(dim, select_indices))
 
+        print(type(enc_states))
+        print(enc_states.size())
+        print(enc_states[-1].size())
+
         results["scores"] = beam.scores
         results["predictions"] = beam.predictions
         results["attention"] = beam.attention
-        results["enc_states"] = enc_states
+        results["enc_states"] = enc_states[-1]
         return results
 
     # This is left in the code for now, but unsued
