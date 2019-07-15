@@ -492,9 +492,12 @@ class Translator(object):
             data, self.fields, self.n_best, self.replace_unk, tgt
         )
 
+        encoder_states = []
         for batch in data_iter:
-            yield self._run_encoder(batch)
+            src, enc_states, _, _ = self._run_encoder(batch)
+            encoder_states += enc_states
 
+        return encoder_states
 
     def _translate_random_sampling(
             self,
