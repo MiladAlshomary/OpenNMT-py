@@ -7,8 +7,6 @@ import functools
 from copy import copy
 from math import sqrt
 
-from onmt.utils.misc import fn_args
-
 
 def build_torch_optimizer(model, opt):
     """Builds the PyTorch optimizer.
@@ -87,17 +85,14 @@ def build_torch_optimizer(model, opt):
 
     if opt.model_dtype == 'fp16':
         import apex
-        static_loss_scale = opt.loss_scale
-        dynamic_loss_scale = opt.loss_scale == 0
-        # TODO: clean this up when APEX unify its optimizer API.
-        if opt.optim.startswith('fused'):
-            namespace = apex.optimizers  # Faster wrapper.
-        else:
-            namespace = apex.fp16_utils
-        optimizer = namespace.FP16_Optimizer(
+        loss_scale = "dynamic" if opt.loss_scale == 0 else opt.loss_scale
+        model, optimizer = apex.amp.initialize(
+            [model, model.generator],
             optimizer,
-            static_loss_scale=static_loss_scale,
-            dynamic_loss_scale=dynamic_loss_scale)
+            opt_level=opt.apex_opt_level,
+            loss_scale=loss_scale,
+            keep_batchnorm_fp32=False if opt.optim == "fusedadam" else None)
+
     return optimizer
 
 
@@ -108,6 +103,14 @@ def make_learning_rate_decay_fn(opt):
             noam_decay,
             warmup_steps=opt.warmup_steps,
             model_size=opt.rnn_size)
+    elif opt.decay_method == 'noamwd':
+        return functools.partial(
+            noamwd_decay,
+            warmup_steps=opt.warmup_steps,
+            model_size=opt.rnn_size,
+            rate=opt.learning_rate_decay,
+            decay_steps=opt.decay_steps,
+            start_step=opt.start_decay_steps)
     elif opt.decay_method == 'rsqrt':
         return functools.partial(
             rsqrt_decay, warmup_steps=opt.warmup_steps)
@@ -126,6 +129,16 @@ def noam_decay(step, warmup_steps, model_size):
     return (
         model_size ** (-0.5) *
         min(step ** (-0.5), step * warmup_steps**(-1.5)))
+
+
+def noamwd_decay(step, warmup_steps,
+                 model_size, rate, decay_steps, start_step=0):
+    """Learning rate schedule optimized for huge batches
+    """
+    return (
+        model_size ** (-0.5) *
+        min(step ** (-0.5), step * warmup_steps**(-1.5)) *
+        rate ** (max(step - start_step + decay_steps, 0) // decay_steps))
 
 
 def exponential_decay(step, rate, decay_steps, start_step=0):
@@ -299,10 +312,9 @@ class Optimizer(object):
         """Wrapper for backward pass. Some optimizer requires ownership of the
         backward pass."""
         if self._with_fp16_wrapper:
-            kwargs = {}
-            if "update_master_grads" in fn_args(self._optimizer.backward):
-                kwargs["update_master_grads"] = True
-            self._optimizer.backward(loss, **kwargs)
+            import apex
+            with apex.amp.scale_loss(loss, self._optimizer) as scaled_loss:
+                scaled_loss.backward()
         else:
             loss.backward()
 
@@ -318,7 +330,9 @@ class Optimizer(object):
                 self._optimizer.update_master_grads()
             if hasattr(self._optimizer, "clip_master_grads") and \
                self._max_grad_norm > 0:
-                self._optimizer.clip_master_grads(self._max_grad_norm)
+                import apex
+                torch.nn.utils.clip_grad_norm_(
+                    apex.amp.master_params(self), self._max_grad_norm)
         for group in self._optimizer.param_groups:
             group['lr'] = learning_rate
             if not self._with_fp16_wrapper and self._max_grad_norm > 0:
