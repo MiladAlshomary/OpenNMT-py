@@ -64,6 +64,10 @@ def model_opts(parser):
               help="Type of source model to use. Allows "
                    "the system to incorporate non-text inputs. "
                    "Options are [text|img|audio|vec].")
+    
+    group.add('--multimodal_model_type', '-multimodal_model_type', default='context-d',
+              choices=['context-d'])
+
     group.add('--model_dtype', '-model_dtype', default='fp32',
               choices=['fp32', 'fp16'],
               help='Data type of the model.')
@@ -81,6 +85,15 @@ def model_opts(parser):
 
     group.add('--layers', '-layers', type=int, default=-1,
               help='Number of layers in enc/dec.')
+
+    group.add('--context_feat_size', '-context_feat_size', type=int, default=48,
+              help='Number of features for the context feature vector.')
+    group.add('--context_dropout', '-context_dropout', type=float, default=0.0,
+      help='Dropout applied on the context encoder.')
+    group.add('--use_nonlinear_projection', '-use_nonlinear_projection', action='store_true',
+      help='Use nonlinear projection in the context encoder')
+
+
     group.add('--enc_layers', '-enc_layers', type=int, default=2,
               help='Number of layers in the encoder')
     group.add('--dec_layers', '-dec_layers', type=int, default=2,
