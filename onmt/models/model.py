@@ -52,24 +52,67 @@ class NMTModel(nn.Module):
         self.encoder.update_dropout(dropout)
         self.decoder.update_dropout(dropout)
 
-class NMTImgDModel(nn.Module):
+class ContextualFeaturesProjector(nn.Module):
+    """
+        Project global image features using a 2-layer multi-layer perceptron.
+    """
+    def __init__(self, num_layers, nfeats, outdim, dropout,
+            use_nonlinear_projection):
+        """
+        Args:
+            num_layers (int): number of decoder layers.
+            nfeats (int): size of image features.
+            outdim (int): size of the output dimension.
+            dropout (float): dropout probablity.
+            use_nonliner_projection (bool): use non-linear activation
+                    when projecting the image features or not.
+        """
+        super(ContextualFeaturesProjector, self).__init__()
+        self.num_layers = num_layers
+        self.nfeats = nfeats
+        self.outdim = outdim
+        self.dropout = dropout
+        
+        layers = []
+        layers.append( nn.Linear(nfeats, nfeats) )
+        if use_nonlinear_projection:
+            layers.append( nn.Tanh() )
+        layers.append( nn.Dropout(dropout) )
+        # final layers projects from nfeats to decoder rnn hidden state size
+        layers.append( nn.Linear(nfeats, outdim*num_layers) )
+        if use_nonlinear_projection:
+            layers.append( nn.Tanh() )
+        layers.append( nn.Dropout(dropout) )
+        #self.batch_norm = nn.BatchNorm2d(512)
+        self.layers = nn.Sequential(*layers)
+
+    def forward(self, input):
+        out = self.layers(input)
+        #print( "out.size(): ", out.size() )
+        if self.num_layers>1:
+            out = out.unsqueeze(0)
+            out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
+            #print( "out.size(): ", out.size() )
+        return out
+
+class NMTContextDModel(nn.Module):
     """
     The encoder + decoder Neural Machine Translation Model
     with image features used to initialise the decoder.
     """
-    def __init__(self, encoder, decoder, encoder_images, multigpu=False):
+    def __init__(self, encoder, decoder, context_encoder, multigpu=False):
         """
         Args:
             encoder(*Encoder): the various encoder.
             decoder(*Decoder): the various decoder.
-            encoder_images(Encoder): the image encoder.
+            context_encoder(Encoder): the image encoder.
             multigpu(bool): run parellel on multi-GPU?
         """
         self.multigpu = multigpu
-        super(NMTImgDModel, self).__init__()
+        super(NMTContextDModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.encoder_images = encoder_images
+        self.context_encoder = context_encoder
 
     def _combine_enc_state_img_proj(self, enc_hidden, img_proj):
         """
@@ -93,7 +136,7 @@ class NMTImgDModel(nn.Module):
         return enc_init_state
 
 
-    def forward(self, src, tgt, lengths, img_feats, bptt=False):
+    def forward(self, src, tgt, lengths, context_feats, bptt=False):
         """Forward propagate a `src` and `tgt` pair for training.
         Possible initialized with a beginning decoder state.
 
@@ -115,12 +158,12 @@ class NMTImgDModel(nn.Module):
         """
         
         # project image features
-        img_proj = self.encoder_images(img_feats)
+        feats_proj = self.context_encoder(context_feats)
 
         tgt = tgt[:-1]  # exclude last target from inputs
 
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
-        enc_init_state = self._combine_enc_state_img_proj(enc_state, img_proj)
+        enc_init_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_init_state)
         

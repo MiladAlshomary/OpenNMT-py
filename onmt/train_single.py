@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Training on a single process."""
 import os
-
+import pickle
 import torch
 
 from onmt.inputters.inputter import build_dataset_iter, \
@@ -97,6 +97,10 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     trainer = build_trainer(
         opt, device_id, model, fields, optim, model_saver=model_saver)
 
+    #Loading user profiles
+    train_feats = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
+    valid_feats = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
+
     if batch_queue is None:
         if len(opt.data_ids) > 1:
             train_shards = []
@@ -140,7 +144,9 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         train_steps,
         save_checkpoint_steps=opt.save_checkpoint_steps,
         valid_iter=valid_iter,
-        valid_steps=opt.valid_steps)
+        valid_steps=opt.valid_steps,
+        train_profiles=train_feats,
+        valid_profiles=valid_feats)
 
     if opt.tensorboard:
         trainer.report_manager.tensorboard_writer.close()

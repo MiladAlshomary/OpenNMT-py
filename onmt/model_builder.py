@@ -162,6 +162,10 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     decoder = build_decoder(model_opt, tgt_emb)
 
+    # An encoder to encode the contextual features
+    context_encoder = ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, opt.rnn_size,
+            opt.context_dropout, opt.use_nonlinear_projection)
+
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:
         device = torch.device("cuda", gpu_id)
@@ -170,9 +174,9 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     elif not gpu:
         device = torch.device("cpu")
 
-    if model_opt.multimodal_model_type == 'imgd':
-        print('Building NMTImgDModel...')
-        model = onmt.models.NMTImgDModel(encoder, decoder, encoder_image)
+    if model_opt.multimodal_model_type == 'contxt-d':
+        print('Building NMTContextDModel...')
+        model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 

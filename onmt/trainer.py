@@ -194,7 +194,9 @@ class Trainer(object):
               train_steps,
               save_checkpoint_steps=5000,
               valid_iter=None,
-              valid_steps=10000):
+              valid_steps=10000,
+              train_profiles=None,
+              valid_profiles=None):
         """
         The main training loop by iterating over `train_iter` and possibly
         running validation on `valid_iter`.
@@ -284,7 +286,7 @@ class Trainer(object):
             self.model_saver.save(step, moving_average=self.moving_average)
         return total_stats
 
-    def validate(self, valid_iter, moving_average=None):
+    def validate(self, valid_iter, context_feats=None, moving_average=None):
         """ Validate model.
             valid_iter: validate data iterator
         Returns:
@@ -309,8 +311,17 @@ class Trainer(object):
                                    else (batch.src, None)
                 tgt = batch.tgt
 
+                # extract indices for all entries in the mini-batch
+                idxs  = batch.indices.cpu().data.numpy()
+                batch_context_feats = torch.from_numpy(context_feats[idxs])
+                batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+                if next(valid_model.parameters()).is_cuda:
+                    batch_context_feats = batch_context_feats.cuda()
+                else:
+                    batch_context_feats = batch_context_feats.cpu()
+
                 # F-prop through the model.
-                outputs, attns = valid_model(src, tgt, src_lengths)
+                outputs, attns = valid_model(src, tgt, batch_context_feats, src_lengths)
 
                 # Compute loss.
                 _, batch_stats = self.valid_loss(batch, outputs, attns)
@@ -326,7 +337,7 @@ class Trainer(object):
 
         return stats
 
-    def _gradient_accumulation(self, true_batches, normalization, total_stats,
+    def _gradient_accumulation(self, true_batches, context_feats, normalization, total_stats,
                                report_stats):
         if self.accum_count > 1:
             self.optim.zero_grad()
@@ -346,6 +357,14 @@ class Trainer(object):
 
             tgt_outer = batch.tgt
 
+            # load image features for this minibatch into a pytorch Variable
+            batch_context_feats = torch.from_numpy( context_feats[idxs] )
+            batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+            if next(self.model.parameters()).is_cuda:
+                batch_context_feats = batch_context_feats.cuda()
+            else:
+                batch_context_feats = batch_context_feats.cpu()
+
             bptt = False
             for j in range(0, target_size-1, trunc_size):
                 # 1. Create truncated target.
@@ -354,7 +373,8 @@ class Trainer(object):
                 # 2. F-prop all but generator.
                 if self.accum_count == 1:
                     self.optim.zero_grad()
-                outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt)
+
+                outputs, attns = self.model(src, tgt, batch_context_feats, src_lengths, bptt=bptt)
                 bptt = True
 
                 # 3. Compute loss.
