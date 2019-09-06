@@ -217,16 +217,7 @@ def preprocess_opts(parser):
     group.add('--valid_src', '-valid_src',
               help="Path to the validation source data")
     group.add('--valid_tgt', '-valid_tgt',
-              help="Path to the validation target data")
-
-
-    group.add('--path_to_train_profiles_feats', '-path_to_train_profiles_feats',
-              help="Path to the training profiles")
-
-
-    group.add('--path_to_valid_profiles_feats', '-path_to_valid_profiles_feats',
-              help="Path to the validation profiles")
-    
+              help="Path to the validation target data")    
 
     group.add('--src_dir', '-src_dir', default="",
               help="Source directory for image or audio files.")
@@ -346,6 +337,13 @@ def train_opts(parser):
     group.add('--data_weights', '-data_weights', type=int, nargs='+',
               default=[1], help="""Weights of different corpora,
               should follow the same order as in -data_ids.""")
+
+     group.add('--path_to_train_profiles_feats', '-path_to_train_profiles_feats',
+              help="Path to the training profiles")
+
+    group.add('--path_to_valid_profiles_feats', '-path_to_valid_profiles_feats',
+              help="Path to the validation profiles")
+
 
     group.add('--save_model', '-save_model', default='model',
               help="Model filename (the model will be saved as "
