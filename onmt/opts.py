@@ -219,6 +219,15 @@ def preprocess_opts(parser):
     group.add('--valid_tgt', '-valid_tgt',
               help="Path to the validation target data")
 
+
+    group.add('--path_to_train_profiles_feats', '-path_to_train_profiles_feats',
+              help="Path to the training profiles")
+
+
+    group.add('--path_to_valid_profiles_feats', '-path_to_valid_profiles_feats',
+              help="Path to the validation profiles")
+    
+
     group.add('--src_dir', '-src_dir', default="",
               help="Source directory for image or audio files.")
 
