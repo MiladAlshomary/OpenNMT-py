@@ -338,7 +338,7 @@ def train_opts(parser):
               default=[1], help="""Weights of different corpora,
               should follow the same order as in -data_ids.""")
 
-     group.add('--path_to_train_profiles_feats', '-path_to_train_profiles_feats',
+    group.add('--path_to_train_profiles_feats', '-path_to_train_profiles_feats',
               help="Path to the training profiles")
 
     group.add('--path_to_valid_profiles_feats', '-path_to_valid_profiles_feats',
