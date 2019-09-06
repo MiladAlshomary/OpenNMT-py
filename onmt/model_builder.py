@@ -163,8 +163,8 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     decoder = build_decoder(model_opt, tgt_emb)
 
     # An encoder to encode the contextual features
-    context_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, opt.rnn_size,
-            opt.context_dropout, opt.use_nonlinear_projection)
+    context_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, model_opt.rnn_size,
+            model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:
