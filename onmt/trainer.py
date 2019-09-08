@@ -241,7 +241,7 @@ class Trainer(object):
                                     (normalization))
 
             self._gradient_accumulation(
-                batches, normalization, total_stats,
+                batches, train_profiles, normalization, total_stats,
                 report_stats)
 
             if self.average_decay > 0 and i % self.average_every == 0:
