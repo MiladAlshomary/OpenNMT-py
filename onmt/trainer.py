@@ -357,6 +357,8 @@ class Trainer(object):
 
             tgt_outer = batch.tgt
 
+            idxs = batch.indices.cpu().data.numpy()
+
             # load image features for this minibatch into a pytorch Variable
             batch_context_feats = torch.from_numpy( context_feats[idxs] )
             batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
