@@ -321,7 +321,7 @@ class Trainer(object):
                     batch_context_feats = batch_context_feats.cpu()
 
                 # F-prop through the model.
-                outputs, attns = valid_model(src, tgt, batch_context_feats, src_lengths)
+                outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
 
                 # Compute loss.
                 _, batch_stats = self.valid_loss(batch, outputs, attns)
@@ -362,6 +362,7 @@ class Trainer(object):
             # load image features for this minibatch into a pytorch Variable
             batch_context_feats = torch.from_numpy( context_feats[idxs] )
             batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+            
             if next(self.model.parameters()).is_cuda:
                 batch_context_feats = batch_context_feats.cuda()
             else:
@@ -376,7 +377,7 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
 
-                outputs, attns = self.model(src, tgt, batch_context_feats, src_lengths, bptt=bptt)
+                outputs, attns = self.model(src, tgt, src_lengths, batch_context_feats, bptt=bptt)
                 bptt = True
 
                 # 3. Compute loss.
