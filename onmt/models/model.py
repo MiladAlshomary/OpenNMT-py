@@ -1,6 +1,6 @@
 """ Onmt NMT Model base class definition """
 import torch.nn as nn
-
+import torch
 
 class NMTModel(nn.Module):
     """
