@@ -310,8 +310,7 @@ class ContextTranslator(object):
             * all_predictions is a list of `batch_size` lists
                 of `n_best` predictions
         """
-        self.context = context
-
+        
         if batch_size is None:
             raise ValueError("batch_size must be set")
 
@@ -353,7 +352,7 @@ class ContextTranslator(object):
 
         for idxs, batch in enumerate(data_iter):
             batch_data = self.translate_batch(
-                batch, data.src_vocabs, attn_debug, tags=[]
+                batch, context_feats, data.src_vocabs, attn_debug, tags=[]
             )
             translations = xlation_builder.from_batch(batch_data)
 
@@ -518,12 +517,13 @@ class ContextTranslator(object):
         results["attention"] = random_sampler.attention
         return results
 
-    def translate_batch(self, batch, src_vocabs, attn_debug, tags):
+    def translate_batch(self, batch, context_feats, src_vocabs, attn_debug, tags):
         """Translate a batch of sentences."""
         with torch.no_grad():
             if self.beam_size == 1:
                 return self._translate_random_sampling(
                     batch,
+                    context_feats,
                     src_vocabs,
                     self.max_length,
                     min_length=self.min_length,
@@ -533,6 +533,7 @@ class ContextTranslator(object):
             else:
                 return self._translate_batch(
                     batch,
+                    context_feats,
                     src_vocabs,
                     self.max_length,
                     min_length=self.min_length,
@@ -616,6 +617,7 @@ class ContextTranslator(object):
     def _translate_batch(
             self,
             batch,
+            context_feats,
             src_vocabs,
             max_length,
             min_length=0,
@@ -632,7 +634,7 @@ class ContextTranslator(object):
 
         # Encode context features...
         idxs  = batch.indices.cpu().data.numpy()
-        context_feats = torch.from_numpy( self.context_feats[idxs] )
+        context_feats = torch.from_numpy( context_feats[idxs] )
         context_feats = torch.autograd.Variable(context_feats, requires_grad=False)
         context_feats = context_feats.unsqueeze(0)
         if next(self.model.parameters()).is_cuda:
