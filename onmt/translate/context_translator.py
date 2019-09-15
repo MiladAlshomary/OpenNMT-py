@@ -636,7 +636,6 @@ class ContextTranslator(object):
         idxs  = batch.indices.cpu().data.numpy()
         context_feats = torch.from_numpy( context_feats[idxs] )
         context_feats = torch.autograd.Variable(context_feats, requires_grad=False)
-        context_feats = context_feats.unsqueeze(0)
         if next(self.model.parameters()).is_cuda:
             context_feats = context_feats.cuda()
         else:
