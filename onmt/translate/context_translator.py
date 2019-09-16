@@ -286,7 +286,7 @@ class ContextTranslator(object):
     def translate(
             self,
             src,
-            context,
+            context_feats,
             tgt=None,
             src_dir=None,
             batch_size=None,
