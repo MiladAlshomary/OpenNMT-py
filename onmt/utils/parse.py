@@ -53,9 +53,9 @@ class ArgumentParser(cfargparse.ArgumentParser):
 
         # this check is here because audio allows the encoder and decoder to
         # be different sizes, but other model types do not yet
-        same_size = model_opt.enc_rnn_size == model_opt.dec_rnn_size
-        assert model_opt.model_type == 'audio' or same_size, \
-            "The encoder and decoder rnns must be the same size for now"
+        # same_size = model_opt.enc_rnn_size == model_opt.dec_rnn_size
+        # assert model_opt.model_type == 'audio' or same_size, \
+        #     "The encoder and decoder rnns must be the same size for now"
 
         assert model_opt.rnn_type != "SRU" or model_opt.gpu_ranks, \
             "Using SRU requires -gpu_ranks set."
