@@ -150,10 +150,10 @@ class NMTContextDModel(nn.Module):
         enc_init_state = []
         if isinstance(enc_hidden, tuple):
             for e in enc_hidden:
-                enc_init_state.append(torch.cat((enc_hidden, context_feats), -1))
+                enc_init_state.append(torch.cat((enc_hidden, context_proj), -1))
             enc_init_state = tuple(enc_init_state)
         else:
-            enc_init_state = torch.cat((enc_hidden, context_feats), -1)
+            enc_init_state = torch.cat((enc_hidden, context_proj), -1)
         return enc_init_state
 
     def forward(self, src, tgt, lengths, context_feats, bptt=False):
