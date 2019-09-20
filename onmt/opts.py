@@ -92,7 +92,8 @@ def model_opts(parser):
       help='Dropout applied on the context encoder.')
     group.add('--use_nonlinear_projection', '-use_nonlinear_projection', action='store_true',
       help='Use nonlinear projection in the context encoder')
-
+    group.add('--context_output_size', '-context_output_size', type=int, default=256,
+              help='The output of context projector')
 
     group.add('--enc_layers', '-enc_layers', type=int, default=2,
               help='Number of layers in the encoder')
