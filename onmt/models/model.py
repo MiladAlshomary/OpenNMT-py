@@ -156,6 +156,26 @@ class NMTContextDModel(nn.Module):
             enc_init_state = torch.cat((enc_hidden, context_proj), -1)
         return enc_init_state
 
+    def _concat_enc_memory_with_context(self, memory_bank, context_proj):
+        """
+        Args:
+            enc_hidden(tuple or DecoderState):
+                                    Tuple containing hidden state and cell
+                                    (h,c) in case of an LSTM, or a hidden state
+                                    (DecoderState) in case of GRU cell.
+            img_proj(Variable):     Variable containing projected image features.
+            
+            Returns:
+                Variable with DecoderState combined with image features.
+        """
+        output_memory = []
+        print(len(memory_bank))
+        print(memory_bank[0].shape)
+        for m in memory_bank:
+            output_memory.append(torch.cat((m, context_proj), -1))
+
+        return output_memory
+
     def forward(self, src, tgt, lengths, context_feats, bptt=False):
         """Forward propagate a `src` and `tgt` pair for training.
         Possible initialized with a beginning decoder state.
@@ -184,6 +204,9 @@ class NMTContextDModel(nn.Module):
 
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
         enc_init_state = self._concat_enc_state_with_context(enc_state, feats_proj)
+        #concat the context_feats with the encoder states for attention...
+        memory_bank = self._concat_enc_memory_with_context(memory_bank, feats_proj)
+
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_init_state)
         
