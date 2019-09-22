@@ -171,6 +171,7 @@ class NMTContextDModel(nn.Module):
         output_memory = []
         print(len(memory_bank))
         print(memory_bank[0].shape)
+        print(context_proj.shape)
         for m in memory_bank:
             output_memory.append(torch.cat((m, context_proj), -1))
 
