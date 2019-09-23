@@ -127,7 +127,7 @@ class NMTContextDModel(nn.Module):
             Returns:
                 Variable with DecoderState combined with image features.
         """
-        print(enc_init_state[0].shape)
+        print(enc_hidden[0].shape)
         print(context_proj.shape)
 
         enc_init_state = []
