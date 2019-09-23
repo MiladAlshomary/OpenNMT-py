@@ -79,7 +79,7 @@ class ContextualFeaturesProjector(nn.Module):
             layers.append( nn.Tanh() )
         layers.append( nn.Dropout(dropout) )
         # final layers projects from nfeats to decoder rnn hidden state size
-        layers.append( nn.Linear(nfeats, outdim*num_layers) )
+        layers.append( nn.Linear(nfeats, outdim) )
         if use_nonlinear_projection:
             layers.append( nn.Tanh() )
         layers.append( nn.Dropout(dropout) )
@@ -89,10 +89,10 @@ class ContextualFeaturesProjector(nn.Module):
     def forward(self, input):
         out = self.layers(input)
         #print( "out.size(): ", out.size() )
-        if self.num_layers>1:
-            out = out.unsqueeze(0)
-            out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
-            #print( "out.size(): ", out.size() )
+        # if self.num_layers>1:
+        #     out = out.unsqueeze(0)
+        #     out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
+        #     #print( "out.size(): ", out.size() )
         return out
 
 class NMTContextDModel(nn.Module):
@@ -114,26 +114,6 @@ class NMTContextDModel(nn.Module):
         self.decoder = decoder
         self.context_encoder = context_encoder
 
-    def _combine_enc_state_img_proj(self, enc_hidden, img_proj):
-        """
-        Args:
-            enc_hidden(tuple or DecoderState):
-                                    Tuple containing hidden state and cell
-                                    (h,c) in case of an LSTM, or a hidden state
-                                    (DecoderState) in case of GRU cell.
-            img_proj(Variable):     Variable containing projected image features.
-            
-            Returns:
-                Variable with DecoderState combined with image features.
-        """
-        enc_init_state = []
-        if isinstance(enc_hidden, tuple):
-            for e in enc_hidden:
-                enc_init_state.append(e + img_proj)
-            enc_init_state = tuple(enc_init_state)
-        else:
-            enc_init_state = enc_hidden + img_proj
-        return enc_init_state
 
     def _concat_enc_state_with_context(self, enc_hidden, context_proj):
         """
@@ -205,6 +185,7 @@ class NMTContextDModel(nn.Module):
 
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
         enc_init_state = self._concat_enc_state_with_context(enc_state, feats_proj)
+        
         #concat the context_feats with the encoder states for attention...
         memory_bank = self._concat_enc_memory_with_context(memory_bank, feats_proj)
 
