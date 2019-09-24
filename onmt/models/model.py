@@ -135,6 +135,28 @@ class NMTContextDModel(nn.Module):
             enc_init_state = torch.cat((enc_hidden, context_proj), -1)
         return enc_init_state
 
+    def _sum_enc_state_with_context(self, enc_hidden, context_proj):
+        """
+        Args:
+            enc_hidden(tuple or DecoderState):
+                                    Tuple containing hidden state and cell
+                                    (h,c) in case of an LSTM, or a hidden state
+                                    (DecoderState) in case of GRU cell.
+            img_proj(Variable):     Variable containing projected image features.
+            
+            Returns:
+                Variable with DecoderState combined with image features.
+        """
+        enc_init_state = []
+        if isinstance(enc_hidden, tuple):
+            for e in enc_hidden:
+                enc_init_state.append(e + context_proj)
+            enc_init_state = tuple(enc_init_state)
+        else:
+            enc_init_state = enc_hidden + context_proj
+        return enc_init_state
+
+
     def _concat_enc_memory_with_context(self, memory_bank, context_proj):
         """
         Args:
@@ -148,9 +170,6 @@ class NMTContextDModel(nn.Module):
                 Variable with DecoderState combined with image features.
         """
         output_memory = []
-        print(len(memory_bank))
-        print(memory_bank[0].shape)
-        print(context_proj.shape)
         for m in memory_bank:
             output_memory.append(torch.cat((m, context_proj), -1))
 
@@ -183,10 +202,11 @@ class NMTContextDModel(nn.Module):
         tgt = tgt[:-1]  # exclude last target from inputs
 
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
-        enc_init_state = self._concat_enc_state_with_context(enc_state, feats_proj)
+        enc_init_state = self._sum_enc_state_with_context(enc_state, feats_proj)
         
-        #concat the context_feats with the encoder states for attention...
-        memory_bank = self._concat_enc_memory_with_context(memory_bank, feats_proj)
+        #Add the context vectors as extra inputs to the attention mechanism...
+        for x in context_feats:
+            memory_bank.append(x)
 
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_init_state)
