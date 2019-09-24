@@ -79,7 +79,7 @@ class ContextualFeaturesProjector(nn.Module):
             layers.append( nn.Tanh() )
         layers.append( nn.Dropout(dropout) )
         # final layers projects from nfeats to decoder rnn hidden state size
-        layers.append( nn.Linear(nfeats, outdim) )
+        layers.append( nn.Linear(nfeats, outdim*num_layers) )
         if use_nonlinear_projection:
             layers.append( nn.Tanh() )
         layers.append( nn.Dropout(dropout) )
@@ -89,10 +89,10 @@ class ContextualFeaturesProjector(nn.Module):
     def forward(self, input):
         out = self.layers(input)
         #print( "out.size(): ", out.size() )
-        # if self.num_layers>1:
-        #     out = out.unsqueeze(0)
-        #     out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
-        #     #print( "out.size(): ", out.size() )
+        if self.num_layers>1:
+            out = out.unsqueeze(0)
+            out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
+            #print( "out.size(): ", out.size() )
         return out
 
 class NMTContextDModel(nn.Module):
@@ -114,7 +114,6 @@ class NMTContextDModel(nn.Module):
         self.decoder = decoder
         self.context_encoder = context_encoder
 
-
     def _concat_enc_state_with_context(self, enc_hidden, context_proj):
         """
         Args:
@@ -127,9 +126,6 @@ class NMTContextDModel(nn.Module):
             Returns:
                 Variable with DecoderState combined with image features.
         """
-        print(enc_hidden[0].shape)
-        print(context_proj.shape)
-
         enc_init_state = []
         if isinstance(enc_hidden, tuple):
             for e in enc_hidden:
