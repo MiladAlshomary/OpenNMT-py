@@ -205,8 +205,7 @@ class NMTContextDModel(nn.Module):
         enc_init_state = self._sum_enc_state_with_context(enc_state, feats_proj)
         
         #Add the context vectors as extra inputs to the attention mechanism...
-        for x in context_feats:
-            memory_bank.append(x)
+        memory_bank = torch.cat((memory_bank, feats_proj), 0)
 
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_init_state)
