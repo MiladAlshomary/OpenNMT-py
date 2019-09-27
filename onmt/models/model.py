@@ -273,7 +273,7 @@ class NMTSrcContextModel(nn.Module):
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
 
         if bptt is False:
-            enc_state = self.decoder.init_decoder_state(src, context, context_proj, enc_state)
+            enc_state = self.decoder.init_state(src, context, context_proj, enc_state)
 
         out, out_imgs, attns = self.decoder(tgt, context, context_proj, enc_state, context_lengths=lengths)
         

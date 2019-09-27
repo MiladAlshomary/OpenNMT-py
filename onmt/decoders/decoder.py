@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 
 from onmt.models.stacked_rnn import StackedLSTM, StackedGRU
 from onmt.modules import context_gate_factory, GlobalAttention
@@ -598,6 +599,8 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         h_size = (batch_size, self.hidden_size)
         self.state["input_feed"] = \
             self.state["hidden"][0].data.new(*h_size).zero_().unsqueeze(0)
+        self.state["input_feed_context"] = Variable(context_img.data.new(*h_size).zero_(),
+                                       requires_grad=False).unsqueeze(0)
         self.state["coverage"] = None
 
     def map_state(self, fn):
