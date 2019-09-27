@@ -537,7 +537,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
 
 
         #setup attention on the context_feature vector
-        self.attn_context = onmt.modules.GlobalAttention(
+        self.attn_context = GlobalAttention(
             hidden_size,
             coverage=False, # coverage not yet implemented for visual attention
             attn_type=attn_type, 
