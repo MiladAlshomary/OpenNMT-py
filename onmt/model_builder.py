@@ -83,7 +83,7 @@ def build_decoder(opt, embeddings):
         opt: the option in current environment.
         embeddings (Embeddings): vocab embeddings for this decoder.
     """
-    dec_type = "ifrnn" if opt.decoder_type == "rnn" and opt.input_feed \
+    dec_type = "ifrnn" if opt.decoder_type == "rnn" and opt.input_feed and opt.decoder_type != 'doubly-attn' \
                else opt.decoder_type
     return str2dec[dec_type].from_opt(opt, embeddings)
 
