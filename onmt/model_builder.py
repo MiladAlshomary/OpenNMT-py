@@ -162,9 +162,13 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     decoder = build_decoder(model_opt, tgt_emb)
 
-    # An encoder to encode the contextual features
-    context_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, model_opt.rnn_size,
-            model_opt.context_dropout, model_opt.use_nonlinear_projection)
+    if model_opt.multimodal_model_type == 'context-d':
+        # An encoder to encode the contextual features
+        context_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, model_opt.rnn_size,
+                model_opt.context_dropout, model_opt.use_nonlinear_projection)
+    else:
+        context_encoder = onmt.models.ContextLocalFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, model_opt.rnn_size,
+                model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:
@@ -177,6 +181,8 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     if model_opt.multimodal_model_type == 'context-d':
         print('Building NMTContextDModel...')
         model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder)
+    elif: model_opt.multimodal_model_type == 'doubly-attn':
+        model = onmt.models.NMTSrcContextModel(encoder, decoder, context_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 
