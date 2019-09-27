@@ -66,7 +66,7 @@ def model_opts(parser):
                    "Options are [text|img|audio|vec].")
     
     group.add('--multimodal_model_type', '-multimodal_model_type', default='context-d',
-              choices=['context-d', 'other'])
+              choices=['context-d', 'doubly-attn', 'other'])
 
     group.add('--model_dtype', '-model_dtype', default='fp32',
               choices=['fp32', 'fp16'],
