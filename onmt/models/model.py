@@ -84,8 +84,8 @@ class ContextLocalFeaturesProjector(nn.Module):
         self.dropout = dropout
         
         layers = []
-        # reshape input
-        layers.append( View(-1, 7*7, nfeats) )
+        # # reshape input
+        # layers.append( View(-1, 7*7, nfeats) )
         # linear projection from feats to rnn size
         layers.append( nn.Linear(nfeats, outdim*num_layers) )
         if use_nonlinear_projection:
@@ -264,6 +264,7 @@ class NMTSrcContextModel(nn.Module):
         """
 
         # project/transform local image features into the expected structure/shape
+        context_feats = context_feats.unsqueeze(-1)
         context_proj = self.context_encoder( context_feats )
 
         tgt = tgt[:-1]  # exclude last target from inputs
