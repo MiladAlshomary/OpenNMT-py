@@ -78,7 +78,7 @@ def model_opts(parser):
                    "are experimental. Options are "
                    "[rnn|brnn|mean|transformer|cnn].")
     group.add('--decoder_type', '-decoder_type', type=str, default='rnn',
-              choices=['rnn', 'transformer', 'cnn'],
+              choices=['rnn', 'transformer', 'cnn', 'doubly-attn'],
               help="Type of decoder layer to use. Non-RNN layers "
                    "are experimental. Options are "
                    "[rnn|transformer|cnn].")
