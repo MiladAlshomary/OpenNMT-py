@@ -275,7 +275,7 @@ class NMTSrcContextModel(nn.Module):
         if bptt is False:
             enc_state = self.decoder.init_state(memory_bank, context_proj, enc_state)
 
-        out, out_imgs, attns = self.decoder(tgt, memory_bank, context_proj, enc_state, memory_lengths=lengths)
+        out, out_imgs, attns = self.decoder(tgt, memory_bank, context_proj, memory_lengths=lengths)
         
         if self.multigpu:
             # Not yet supported on multi-gpu
