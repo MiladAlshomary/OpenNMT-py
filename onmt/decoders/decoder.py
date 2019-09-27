@@ -440,7 +440,7 @@ class InputFeedRNNDecoder(RNNDecoderBase):
 
 
 
-class RNNDecoderBaseDoublyAttentive(DecoderBase):
+class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
     """Base recurrent attention-based decoder class.
 
     Specifies the interface used by different decoder types
