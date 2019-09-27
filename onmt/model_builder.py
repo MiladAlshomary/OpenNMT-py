@@ -181,7 +181,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     if model_opt.multimodal_model_type == 'context-d':
         print('Building NMTContextDModel...')
         model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder)
-    elif: model_opt.multimodal_model_type == 'doubly-attn':
+    elif model_opt.multimodal_model_type == 'doubly-attn':
         model = onmt.models.NMTSrcContextModel(encoder, decoder, context_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
