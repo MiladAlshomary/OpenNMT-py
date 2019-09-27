@@ -578,7 +578,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             opt.reuse_copy_attn,
             opt.copy_attn_type)
 
-    def init_state(self, src, memory_bank, encoder_final):
+    def init_state(self, memory_bank, context_vector, encoder_final):
         """Initialize decoder state with last state of the encoder."""
         def _fix_enc_hidden(hidden):
             # The encoder hidden is  (layers*directions) x batch x dim.
@@ -599,7 +599,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         h_size = (batch_size, self.hidden_size)
         self.state["input_feed"] = \
             self.state["hidden"][0].data.new(*h_size).zero_().unsqueeze(0)
-        self.state["input_feed_context"] = Variable(context_img.data.new(*h_size).zero_(),
+        self.state["input_feed_context"] = Variable(context_vector.data.new(*h_size).zero_(),
                                        requires_grad=False).unsqueeze(0)
         self.state["coverage"] = None
 
