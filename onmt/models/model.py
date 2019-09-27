@@ -52,6 +52,14 @@ class NMTModel(nn.Module):
         self.encoder.update_dropout(dropout)
         self.decoder.update_dropout(dropout)
 
+class View(nn.Module):
+    """Helper class to be used inside Sequential object to reshape Variables"""
+    def __init__(self, *shape):
+        super(View, self).__init__()
+        self.shape = shape
+    def forward(self, input):
+        return input.view(*self.shape)
+
 
 class ContextLocalFeaturesProjector(nn.Module):
     """
