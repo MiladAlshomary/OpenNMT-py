@@ -85,7 +85,7 @@ class ContextLocalFeaturesProjector(nn.Module):
         
         layers = []
         # # reshape input
-        # layers.append( View(-1, 7*7, nfeats) )
+        layers.append(View(-1, 1, nfeats) )
         # linear projection from feats to rnn size
         layers.append( nn.Linear(nfeats, outdim*num_layers) )
         if use_nonlinear_projection:
@@ -94,7 +94,7 @@ class ContextLocalFeaturesProjector(nn.Module):
         #self.batch_norm = nn.BatchNorm2d(512)
         self.layers = nn.Sequential(*layers)
 
-    def forward(self, input):
+    def forward(self, input):       
         out = self.layers(input)
         #print( "out.size(): ", out.size() )
         #if self.num_layers>1:
@@ -265,6 +265,7 @@ class NMTSrcContextModel(nn.Module):
 
         # project/transform local image features into the expected structure/shape
         context_feats = context_feats.unsqueeze(-1)
+        print('context_feats in model forward: ', context_feats.shape)
         context_proj = self.context_encoder( context_feats )
 
         tgt = tgt[:-1]  # exclude last target from inputs
