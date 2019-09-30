@@ -266,7 +266,6 @@ class NMTSrcContextModel(nn.Module):
 
         # project/transform local image features into the expected structure/shape
         context_feats = context_feats.unsqueeze(-1)
-        print(context_feats.shape)
         context_proj = self.context_encoder( context_feats )
 
         tgt = tgt[:-1]  # exclude last target from inputs
