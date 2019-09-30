@@ -636,7 +636,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         context_vector = context_vector.transpose(0,1)
 
 
-        dec_state, dec_outs, outputs_img, attns, coverage, coverage_img = self._run_forward_pass(
+        dec_state, dec_outs, context_outs, attns = self._run_forward_pass(
             tgt, memory_bank, context_vector, memory_lengths=memory_lengths)
 
         # Update the state with the result.
