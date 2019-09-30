@@ -281,4 +281,4 @@ class NMTSrcContextModel(nn.Module):
             # Not yet supported on multi-gpu
             attns = None
 
-        return out, out_imgs, attns
+        return out, attns

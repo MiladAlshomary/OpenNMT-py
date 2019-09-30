@@ -661,7 +661,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
                 if type(attns[k]) == list:
                     attns[k] = torch.stack(attns[k])
         
-        return dec_outs, attns
+        return dec_outs, context_outs, attns
 
     def update_dropout(self, dropout):
         self.dropout.p = dropout
