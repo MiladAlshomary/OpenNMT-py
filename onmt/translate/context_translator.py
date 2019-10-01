@@ -1052,12 +1052,9 @@ class ContextTranslatorViaAttn(ContextTranslator):
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
         
-        feats_proj = rvar(feats_proj.transpose(0,1).data)
-        # return it back to (batch x len x feats)
+        feats_proj = tile(feats_proj.transpose(0,1), beam_size)
         feats_proj = feats_proj.transpose(0,1)
-        print('=======', feats_proj.shape)
-        print('=======', memory_bank.shape)
-
+        
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
