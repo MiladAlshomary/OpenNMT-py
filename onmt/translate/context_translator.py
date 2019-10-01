@@ -1021,7 +1021,6 @@ class ContextTranslatorViaAttn(ContextTranslator):
         # project image features
         feats_proj = self.model.context_encoder( context_feats )
 
-        print('===================', feats_proj.shape)
         # (1) Run the encoder on the src.
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
 
@@ -1053,8 +1052,10 @@ class ContextTranslatorViaAttn(ContextTranslator):
             mb_device = memory_bank.device
         
         memory_lengths = tile(src_lengths, beam_size)
-        feats_proj = tile(feats_proj, beam_size, dim=1)
+        feats_proj = tile(feats_proj, beam_size, dim=0)
         print('=======', feats_proj.shape)
+        print('=======', memory_bank.shape)
+
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
