@@ -1021,6 +1021,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
         # project image features
         feats_proj = self.model.context_encoder( context_feats )
 
+        print('===================', feats_proj.shape)
         # (1) Run the encoder on the src.
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
 
