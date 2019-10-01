@@ -1018,6 +1018,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
 
         #add dummy one dimension..
         context_feats = context_feats.unsqueeze(-1)
+        
         # project image features
         feats_proj = self.model.context_encoder( context_feats )
 
@@ -1052,7 +1053,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
         
-        feats_proj = feats_proj.repeat(1, beam_size, 1)
+        feats_proj = feats_proj.transpose(0,1).repeat(1, beam_size, 1)
         feats_proj = feats_proj.transpose(0,1)
         
         # (0) pt 2, prep the beam object
