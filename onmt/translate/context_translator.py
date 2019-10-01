@@ -1051,8 +1051,10 @@ class ContextTranslatorViaAttn(ContextTranslator):
         else:
             memory_bank = tile(memory_bank, beam_size, dim=1)
             mb_device = memory_bank.device
+        
         memory_lengths = tile(src_lengths, beam_size)
-
+        feats_proj = tile(feats_proj, beam_size, dim=1)
+        print('=======', feats_proj.shape)
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
