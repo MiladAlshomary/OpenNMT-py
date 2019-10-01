@@ -1120,7 +1120,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
         self,
         decoder_in,
         memory_bank,
-        context_feats,
+        context_proj,
         batch,
         src_vocabs,
         memory_lengths,
