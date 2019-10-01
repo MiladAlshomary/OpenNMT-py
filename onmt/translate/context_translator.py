@@ -1077,7 +1077,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
             log_probs, attn = self._decode_and_generate(
                 decoder_input,
                 memory_bank,
-                context_feats,
+                feats_proj,
                 batch,
                 src_vocabs,
                 memory_lengths=memory_lengths,
