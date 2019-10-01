@@ -737,8 +737,8 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_lengths=memory_lengths)
 
               print('in atten......')
-              print('=======', rnn_output.shape)
-              print('=======', context_vector.transpose(0,1).shape)
+              print('', rnn_output.shape)
+              print('', context_vector.transpose(0,1).shape)
 
               attn_output_context, attn_context = self.attn_context(
               rnn_output,

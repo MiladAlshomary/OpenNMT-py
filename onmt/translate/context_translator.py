@@ -1050,9 +1050,11 @@ class ContextTranslatorViaAttn(ContextTranslator):
         else:
             memory_bank = tile(memory_bank, beam_size, dim=1)
             mb_device = memory_bank.device
-        
         memory_lengths = tile(src_lengths, beam_size)
-        feats_proj = tile(feats_proj, beam_size, dim=0)
+        
+        feats_proj = rvar(feats_proj.transpose(0,1).data)
+        # return it back to (batch x len x feats)
+        feats_proj = feats_proj.transpose(0,1)
         print('=======', feats_proj.shape)
         print('=======', memory_bank.shape)
 
