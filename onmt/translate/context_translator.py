@@ -925,6 +925,69 @@ def ContextTranslatorViaAttn(ContextTranslator):
             global_scorer, out_file, report_score, logger, seed)
 
 
+    @classmethod
+    def from_opt(
+            cls,
+            model,
+            fields,
+            opt,
+            model_opt,
+            global_scorer=None,
+            out_file=None,
+            report_score=True,
+            logger=None):
+        """Alternate constructor.
+
+        Args:
+            model (onmt.modules.NMTModel): See :func:`__init__()`.
+            fields (dict[str, torchtext.data.Field]): See
+                :func:`__init__()`.
+            opt (argparse.Namespace): Command line options
+            model_opt (argparse.Namespace): Command line options saved with
+                the model checkpoint.
+            global_scorer (onmt.translate.GNMTGlobalScorer): See
+                :func:`__init__()`..
+            out_file (TextIO or codecs.StreamReaderWriter): See
+                :func:`__init__()`.
+            report_score (bool) : See :func:`__init__()`.
+            logger (logging.Logger or NoneType): See :func:`__init__()`.
+        """
+
+        src_reader = inputters.str2reader[opt.data_type].from_opt(opt)
+        tgt_reader = inputters.str2reader["text"].from_opt(opt)
+        return cls(
+            model,
+            fields,
+            src_reader,
+            tgt_reader,
+            gpu=opt.gpu,
+            n_best=opt.n_best,
+            min_length=opt.min_length,
+            max_length=opt.max_length,
+            ratio=opt.ratio,
+            beam_size=opt.beam_size,
+            random_sampling_topk=opt.random_sampling_topk,
+            random_sampling_temp=opt.random_sampling_temp,
+            stepwise_penalty=opt.stepwise_penalty,
+            dump_beam=opt.dump_beam,
+            block_ngram_repeat=opt.block_ngram_repeat,
+            ignore_when_blocking=set(opt.ignore_when_blocking),
+            replace_unk=opt.replace_unk,
+            phrase_table=opt.phrase_table,
+            data_type=opt.data_type,
+            verbose=opt.verbose,
+            report_bleu=opt.report_bleu,
+            report_rouge=opt.report_rouge,
+            report_time=opt.report_time,
+            copy_attn=model_opt.copy_attn,
+            global_scorer=global_scorer,
+            out_file=out_file,
+            constraint_file = opt.constraint_file,
+            report_score=report_score,
+            logger=logger,
+            seed=opt.seed)
+
+
     def _translate_batch(
             self,
             batch,
