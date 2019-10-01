@@ -10,7 +10,7 @@ from onmt.translate.penalties import PenaltyBuilder
 from onmt.translate.translation_server import TranslationServer, \
     ServerModelError
 
-__all__ = ['ContextTranslator', ,'ContextTranslatorViaAttn', 'Translator', 'Translation', 'Beam', 'BeamSearch',
+__all__ = ['ContextTranslator', 'ContextTranslatorViaAttn', 'Translator', 'Translation', 'Beam', 'BeamSearch',
            'GNMTGlobalScorer', 'TranslationBuilder',
            'PenaltyBuilder', 'TranslationServer', 'ServerModelError',
            "DecodeStrategy", "RandomSampling"]
