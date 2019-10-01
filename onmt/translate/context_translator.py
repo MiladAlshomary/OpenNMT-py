@@ -1026,7 +1026,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
 
     
         # initialise decoder
-        self.model.decoder.init_state(memory_bank, feats_proj, enc_init_state)
+        self.model.decoder.init_state(memory_bank, feats_proj, enc_states)
 
         results = {
             "predictions": None,
