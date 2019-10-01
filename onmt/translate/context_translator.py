@@ -884,7 +884,7 @@ class ContextTranslator(object):
         return msg
 
 
-def ContextTranslatorViaAttn(ContextTranslator):
+class ContextTranslatorViaAttn(ContextTranslator):
 
     def __init__(
             self,
