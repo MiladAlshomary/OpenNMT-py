@@ -219,8 +219,6 @@ class RNNEncoderV2(EncoderBase):
             """
             Transform from 3D to 2D, apply linear and return initial size
             """
-            print('state: ', states.shape)
-            print('context: ', context.shape)
 
             size = states.size()
             states = torch.cat((states, context), -1)
