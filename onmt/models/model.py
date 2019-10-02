@@ -162,10 +162,12 @@ class NMTContextDModel(nn.Module):
 
         tgt = tgt[:-1]  # exclude last target from inputs
 
-        enc_state, memory_bank, lengths = self.encoder(src, lengths)
-        enc_init_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
+        enc_state, memory_bank, lengths = self.encoder(src, feats_proj, lengths)
+        
+        #enc_init_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
+        
         if bptt is False:
-            self.decoder.init_state(src, memory_bank, enc_init_state)
+            self.decoder.init_state(src, memory_bank, enc_state)
         
         dec_out, attns = self.decoder(tgt, memory_bank,
                                       memory_lengths=lengths)
