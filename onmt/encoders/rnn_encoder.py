@@ -144,7 +144,7 @@ class RNNEncoderV2(EncoderBase):
         self.rnn, self.no_pack_padded_seq = \
             rnn_factory(rnn_type,
                         input_size=embeddings.embedding_size,
-                        enc_hidden_size=enc_hidden_size,
+                        hidden_size=enc_hidden_size,
                         num_layers=num_layers,
                         dropout=dropout,
                         bidirectional=bidirectional)
