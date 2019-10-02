@@ -1007,12 +1007,9 @@ class ContextTranslatorViaAttn(ContextTranslator):
         beam_size = self.beam_size
         batch_size = batch.batch_size
 
-        print('batch_size:', batch_size)
         # Encode context features...
         idxs  = batch.indices.cpu().data.numpy()
-        print(idxs)
         context_feats = torch.from_numpy( context_feats[idxs] )
-        print('context_feats: ', context_feats.shape)
         context_feats = torch.autograd.Variable(context_feats, requires_grad=False)
         if next(self.model.parameters()).is_cuda:
             context_feats = context_feats.cuda()
@@ -1111,6 +1108,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
                     memory_bank = memory_bank.index_select(1, select_indices)
 
                 memory_lengths = memory_lengths.index_select(0, select_indices)
+                feats_proj     = feats_proj.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
