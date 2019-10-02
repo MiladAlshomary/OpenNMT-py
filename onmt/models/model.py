@@ -100,7 +100,7 @@ class NMTContextDModel(nn.Module):
     The encoder + decoder Neural Machine Translation Model
     with image features used to initialise the decoder.
     """
-    def __init__(self, encoder, decoder, context_encoder, multigpu=False):
+    def __init__(self, encoder, decoder, context_encoder, merge_context_via='concat', multigpu=False):
         """
         Args:
             encoder(*Encoder): the various encoder.
@@ -113,6 +113,7 @@ class NMTContextDModel(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
         self.context_encoder = context_encoder
+        self.merge_context_via = merge_context_via
 
     def _combine_enc_state_img_proj(self, enc_hidden, img_proj):
         """
@@ -161,10 +162,12 @@ class NMTContextDModel(nn.Module):
         feats_proj = self.context_encoder(context_feats)
 
         tgt = tgt[:-1]  # exclude last target from inputs
-
-        enc_state, memory_bank, lengths = self.encoder(src, feats_proj, lengths)
         
-        #enc_init_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
+        if self.merge_context_via == 'addition':
+            enc_state, memory_bank, lengths = self.encoder(src, feats_proj, lengths)
+            enc_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
+        elif self.merge_context_via == 'concat':
+            enc_state, memory_bank, lengths = self.encoder(src, lengths)
         
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_state)

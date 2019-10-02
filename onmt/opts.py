@@ -67,6 +67,8 @@ def model_opts(parser):
     
     group.add('--multimodal_model_type', '-multimodal_model_type', default='context-d',
               choices=['context-d', 'other'])
+    group.add('--merge_context_via', '-merge_context_via', default='concat',
+              choices=['concat', 'addition'])
 
     group.add('--model_dtype', '-model_dtype', default='fp32',
               choices=['fp32', 'fp16'],

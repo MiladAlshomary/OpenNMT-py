@@ -179,7 +179,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     if model_opt.multimodal_model_type == 'context-d':
         print('Building NMTContextDModel...')
-        model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder)
+        model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder, model_opt.merge_context_via)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 
