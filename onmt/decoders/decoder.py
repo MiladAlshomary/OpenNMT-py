@@ -731,13 +731,16 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           decoder_input = torch.cat([emb_t.squeeze(0), input_feed], 1)
           rnn_output, dec_state = self.rnn(decoder_input, dec_state)
           if self.attentional:
+
+              print('in atten......')
+              print('', rnn_output.shape)
+              print('memory bank: ', memory_bank.transpose(0, 1).shape)
+
               decoder_output, p_attn = self.attn(
                   rnn_output,
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)
 
-              print('in atten......')
-              print('', rnn_output.shape)
               print('', context_vector.transpose(0,1).shape)
 
               attn_output_context, attn_context = self.attn_context(

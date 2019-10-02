@@ -1132,6 +1132,7 @@ class ContextTranslatorViaAttn(ContextTranslator):
         step=None,
         batch_offset=None,
         tags=[]):
+    
         if self.copy_attn:
             # Turn any copied words into UNKs.
             decoder_in = decoder_in.masked_fill(
