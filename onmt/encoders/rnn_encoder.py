@@ -224,7 +224,6 @@ class RNNEncoderV2(EncoderBase):
             states = torch.cat((states, context), -1)
 
             result = linear(states.view(-1, self.total_hidden_dim))
-            print('result:', result.shape)
             return F.relu(result).view(size)
 
         if isinstance(hidden, tuple):  # LSTM
