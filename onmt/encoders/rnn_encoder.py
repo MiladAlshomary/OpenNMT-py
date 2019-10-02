@@ -133,7 +133,7 @@ class RNNEncoderV2(EncoderBase):
     def __init__(self, rnn_type, bidirectional, num_layers,
                  enc_hidden_size, dec_hidden_size, context_size, dropout=0.0, embeddings=None,
                  use_bridge=False):
-        super(RNNEncoder, self).__init__()
+        super(RNNEncoderV2, self).__init__()
         assert embeddings is not None
 
         num_directions = 2 if bidirectional else 1
