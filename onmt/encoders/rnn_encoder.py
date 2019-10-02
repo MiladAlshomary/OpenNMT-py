@@ -167,7 +167,7 @@ class RNNEncoderV2(EncoderBase):
             opt.enc_layers,
             opt.enc_rnn_size,
             opt.dec_rnn_size,
-            opt.context_size,
+            opt.context_hidden_size,
             opt.dropout[0] if type(opt.dropout) is list else opt.dropout,
             embeddings,
             opt.bridge)

@@ -109,7 +109,7 @@ def model_opts(parser):
               help="Size of decoder rnn hidden states. "
                    "Must be equal to enc_rnn_size except for "
                    "speech-to-text.")
-    group.add('--context_size', '-context_size', type=int, default=256,
+    group.add('--context_hidden_size', '-context_hidden_size', type=int, default=256,
               help="Size of context vector. ")
 
     group.add('--audio_enc_pooling', '-audio_enc_pooling',
