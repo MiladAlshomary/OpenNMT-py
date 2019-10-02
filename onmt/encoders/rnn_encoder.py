@@ -205,11 +205,11 @@ class RNNEncoderV2(EncoderBase):
         
         # Total number of states
         self.total_hidden_dim = (enc_hidden_size + context_size) * num_layers
-        self.dec_hidden_size  = dec_hidden_size
+        self.total_out_dim    = dec_hidden_size * num_layers
 
         # Build a linear layer for each
         self.bridge = nn.ModuleList([nn.Linear(self.total_hidden_dim,
-                                               self.dec_hidden_size,
+                                               self.total_out_dim,
                                                bias=True)
                                      for _ in range(number_of_states)])
 
@@ -219,11 +219,14 @@ class RNNEncoderV2(EncoderBase):
             """
             Transform from 3D to 2D, apply linear and return initial size
             """
+            print('state: ', states.shape)
+            print('context: ', context.shape)
+
             size = states.size()
             states = torch.cat((states, context), -1)
 
             result = linear(states.view(-1, self.total_hidden_dim))
-
+            print('result:', result.shape)
             return F.relu(result).view(size)
 
         if isinstance(hidden, tuple):  # LSTM
