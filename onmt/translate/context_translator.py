@@ -1007,9 +1007,12 @@ class ContextTranslatorViaAttn(ContextTranslator):
         beam_size = self.beam_size
         batch_size = batch.batch_size
 
+        print('batch_size:', batch_size)
         # Encode context features...
         idxs  = batch.indices.cpu().data.numpy()
+        print(idx)
         context_feats = torch.from_numpy( context_feats[idxs] )
+        print('context_feats: ', context_feats.shape)
         context_feats = torch.autograd.Variable(context_feats, requires_grad=False)
         if next(self.model.parameters()).is_cuda:
             context_feats = context_feats.cuda()
