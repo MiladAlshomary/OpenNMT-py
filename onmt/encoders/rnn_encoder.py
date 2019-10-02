@@ -1,4 +1,5 @@
 """Define RNN-based encoders."""
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -221,7 +222,7 @@ class RNNEncoderV2(EncoderBase):
             print('state: ', states.shape)
             print('context: ', context.shape)
 
-            states = tf.concat(-1, [states, context])
+            states = torch.cat((states, context), -1)
 
             size = states.size()
             result = linear(states.view(-1, self.total_hidden_dim))
