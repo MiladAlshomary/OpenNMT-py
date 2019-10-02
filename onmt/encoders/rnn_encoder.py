@@ -203,7 +203,7 @@ class RNNEncoderV2(EncoderBase):
         number_of_states = 2 if rnn_type == "LSTM" else 1
         
         # Total number of states
-        self.total_hidden_dim = (enc_hidden_size + context_sizet) * num_layers
+        self.total_hidden_dim = (enc_hidden_size + context_size) * num_layers
         self.dec_hidden_size  = dec_hidden_size
 
         # Build a linear layer for each
