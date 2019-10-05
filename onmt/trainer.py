@@ -321,7 +321,10 @@ class Trainer(object):
                     batch_context_feats = batch_context_feats.cpu()
 
                 # F-prop through the model.
-                outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
+                if isinstance(valid_model, onmt.models.NMTContextDModel):
+                    outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
+                else:
+                    outputs, attns = valid_model(src, tgt, src_lengths)
 
                 # Compute loss.
                 _, batch_stats = self.valid_loss(batch, outputs, attns)
@@ -377,7 +380,10 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
 
-                outputs, attns = self.model(src, tgt, src_lengths, batch_context_feats, bptt=bptt)
+                if isinstance(self.model, onmt.models.NMTContextDModel):
+                    outputs, attns = self.model(src, tgt, src_lengths, batch_context_feats, bptt=bptt)
+                else:
+                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt)
                 bptt = True
 
                 # 3. Compute loss.

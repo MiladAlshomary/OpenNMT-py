@@ -1,5 +1,5 @@
 """Module defining decoders."""
-from onmt.decoders.decoder import DecoderBase, InputFeedRNNDecoder, \
+from onmt.decoders.decoder_v2 import DecoderBase, InputFeedRNNDecoder, \
     StdRNNDecoder
 from onmt.decoders.transformer import TransformerDecoder
 from onmt.decoders.cnn_decoder import CNNDecoder

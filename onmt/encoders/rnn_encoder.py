@@ -225,7 +225,7 @@ class RNNEncoderV2(EncoderBase):
 
             result = linear(states.view(-1, self.total_hidden_dim))
             return F.relu(result).view(size)
-
+        
         if isinstance(hidden, tuple):  # LSTM
             outs = tuple([bottle_hidden(layer, hidden[ix], context)
                           for ix, layer in enumerate(self.bridge)])

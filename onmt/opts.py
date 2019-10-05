@@ -65,10 +65,11 @@ def model_opts(parser):
                    "the system to incorporate non-text inputs. "
                    "Options are [text|img|audio|vec].")
     
-    group.add('--multimodal_model_type', '-multimodal_model_type', default='context-d',
-              choices=['context-d', 'other'])
+    group.add('--multimodal_model_type', '-multimodal_model_type', default='none',
+              choices=['context-d', 'none'])
     group.add('--merge_context_via', '-merge_context_via', default='concat',
-              choices=['concat', 'addition'])
+              choices=['concat', 'addition', 'none'])
+    group.add('--pass_user_context_to_gate', '-pass_user_context_to_gate', action="store_true")
 
     group.add('--model_dtype', '-model_dtype', default='fp32',
               choices=['fp32', 'fp16'],
@@ -111,7 +112,7 @@ def model_opts(parser):
               help="Size of decoder rnn hidden states. "
                    "Must be equal to enc_rnn_size except for "
                    "speech-to-text.")
-    group.add('--context_hidden_size', '-context_hidden_size', type=int, default=256,
+    group.add('--context_hidden_size', '-context_hidden_size', type=int, default=-1,
               help="Size of context vector. ")
 
     group.add('--audio_enc_pooling', '-audio_enc_pooling',
@@ -142,7 +143,7 @@ def model_opts(parser):
               help="Deprecated, use `encoder_type`.")
 
     group.add('--context_gate', '-context_gate', type=str, default=None,
-              choices=['source', 'target', 'both'],
+              choices=['source', 'target', 'both', 'both+user'],
               help="Type of context gate to use. "
                    "Do not select for no context gate.")
 

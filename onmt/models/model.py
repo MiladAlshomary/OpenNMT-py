@@ -159,19 +159,24 @@ class NMTContextDModel(nn.Module):
         """
         
         # project image features
-        feats_proj = self.context_encoder(context_feats)
+        context_feats_proj = self.context_encoder(context_feats)
 
         tgt = tgt[:-1]  # exclude last target from inputs
         
         if self.merge_context_via == 'addition':
-            enc_state, memory_bank, lengths = self.encoder(src, feats_proj, lengths)
-            enc_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
-        elif self.merge_context_via == 'concat':
             enc_state, memory_bank, lengths = self.encoder(src, lengths)
+            enc_state = self._combine_enc_state_img_proj(enc_state, context_feats_proj)
+        elif self.merge_context_via == 'concat':
+            enc_state, memory_bank, lengths = self.encoder(src, context_feats_proj, lengths)
+        elif self.merge_context_via == 'none':
+            enc_state, memory_bank, lengths = self.encoder(src, lengths)
+
         
         if bptt is False:
             self.decoder.init_state(src, memory_bank, enc_state)
         
-        dec_out, attns = self.decoder(tgt, memory_bank,
+        #from num_layers x batch_szie x context_hidden_size => batch_size x context_hidden_size * 2
+        context_feats_proj = torch.cat((context_feats_proj[0], context_feats_proj[1]), 1)
+        dec_out, attns = self.decoder(tgt, memory_bank, context_feats_proj,
                                       memory_lengths=lengths)
         return dec_out, attns
