@@ -695,8 +695,12 @@ class ContextTranslator(object):
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
 
-        feats_proj = tile(feats_proj, beam_size, dim=0)
-
+        print(feats_proj.shape)
+        #prepare input for the decoder
+        context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
+        print(context_feats_proj.shape)
+        context_feats_proj = tile(context_feats_proj, beam_size, dim=0)
+        print(context_feats_proj.shape)
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
@@ -715,8 +719,6 @@ class ContextTranslator(object):
             block_ngram_repeat=self.block_ngram_repeat,
             exclusion_tokens=self._exclusion_idxs,
             memory_lengths=memory_lengths)
-
-        context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
 
         for step in range(max_length):
             decoder_input = beam.current_predictions.view(1, -1, 1)
