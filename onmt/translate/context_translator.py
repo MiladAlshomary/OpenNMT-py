@@ -695,6 +695,8 @@ class ContextTranslator(object):
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
 
+        feats_proj = tile(feats_proj, beam_size, dim=0)
+
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
