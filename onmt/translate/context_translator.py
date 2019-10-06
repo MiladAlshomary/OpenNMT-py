@@ -133,7 +133,8 @@ class ContextTranslator(object):
             out_file=None,
             report_score=True,
             logger=None,
-            seed=-1):
+            seed=-1,
+            merge_context_via='none'):
         self.model = model
         self.fields = fields
         tgt_field = dict(self.fields)["tgt"].base_field
@@ -179,6 +180,7 @@ class ContextTranslator(object):
         self.report_time = report_time
 
         self.copy_attn = copy_attn
+        self.merge_context_via = merge_context_via
 
         self.global_scorer = global_scorer
         if self.global_scorer.has_cov_pen and \
@@ -264,7 +266,8 @@ class ContextTranslator(object):
             constraint_file = opt.constraint_file,
             report_score=report_score,
             logger=logger,
-            seed=opt.seed)
+            seed=opt.seed,
+            merge_context_via=model_opt.merge_context_via)
 
     def _log(self, msg):
         if self.logger:
@@ -352,7 +355,8 @@ class ContextTranslator(object):
 
         for idxs, batch in enumerate(data_iter):
             batch_data = self.translate_batch(
-                batch, context_feats, data.src_vocabs, attn_debug, tags=[]
+                batch, context_feats, data.src_vocabs, attn_debug, tags=[],
+
             )
             translations = xlation_builder.from_batch(batch_data)
 
@@ -539,14 +543,20 @@ class ContextTranslator(object):
                     min_length=self.min_length,
                     ratio=self.ratio,
                     n_best=self.n_best,
-                    return_attention=attn_debug or self.replace_unk, tags=tags)
+                    return_attention=attn_debug or self.replace_unk, 
+                    tags=tags)
 
-    def _run_encoder(self, batch):
+    def _run_encoder(self, batch, feats_proj=None):
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                            else (batch.src, None)
 
-        enc_states, memory_bank, src_lengths = self.model.encoder(
-            src, src_lengths)
+        if feats_proj != None:
+            enc_states, memory_bank, src_lengths = self.model.encoder(
+                src, feats_proj, src_lengths)
+        else:
+            enc_states, memory_bank, src_lengths = self.model.encoder(
+                src, src_lengths)
+
         if src_lengths is None:
             assert not isinstance(memory_bank, tuple), \
                 'Ensemble decoding only supported for text data'
@@ -645,10 +655,17 @@ class ContextTranslator(object):
         feats_proj = self.model.context_encoder( context_feats )
 
         # (1) Run the encoder on the src.
-        src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
+        if self.merge_context_via == 'concat':
+            src, enc_states, memory_bank, src_lengths = self._run_encoder(batch, feats_proj)
+            enc_init_state = enc_states
+        elif self.merge_context_via == 'addition':
+            src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
+            # combine encoder final hidden state with image features
+            enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
+        else:
+            enc_state, memory_bank, lengths = self.encoder(batch)
+            enc_init_state = enc_states
 
-        # combine encoder final hidden state with image features
-        enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
         # initialise decoder
 
         self.model.decoder.init_state(src, memory_bank, enc_init_state)
@@ -739,100 +756,6 @@ class ContextTranslator(object):
         results["attention"] = beam.attention
         return results
 
-    # This is left in the code for now, but unsued
-    def _translate_batch_deprecated(self, batch, src_vocabs):
-        # (0) Prep each of the components of the search.
-        # And helper method for reducing verbosity.
-        use_src_map = self.copy_attn
-        beam_size = self.beam_size
-        batch_size = batch.batch_size
-
-        beam = [onmt.translate.Beam(
-            beam_size,
-            n_best=self.n_best,
-            cuda=self.cuda,
-            global_scorer=self.global_scorer,
-            pad=self._tgt_pad_idx,
-            eos=self._tgt_eos_idx,
-            bos=self._tgt_bos_idx,
-            min_length=self.min_length,
-            stepwise_penalty=self.stepwise_penalty,
-            block_ngram_repeat=self.block_ngram_repeat,
-            exclusion_tokens=self._exclusion_idxs)
-            for __ in range(batch_size)]
-
-        # (1) Run the encoder on the src.
-        src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
-        self.model.decoder.init_state(src, memory_bank, enc_states)
-
-        results = {
-            "predictions": [],
-            "scores": [],
-            "attention": [],
-            "batch": batch,
-            "gold_score": self._gold_score(
-                batch, memory_bank, src_lengths, src_vocabs, use_src_map,
-                enc_states, batch_size, src)}
-
-        # (2) Repeat src objects `beam_size` times.
-        # We use now  batch_size x beam_size (same as fast mode)
-        src_map = (tile(batch.src_map, beam_size, dim=1)
-                   if use_src_map else None)
-        self.model.decoder.map_state(
-            lambda state, dim: tile(state, beam_size, dim=dim))
-
-        if isinstance(memory_bank, tuple):
-            memory_bank = tuple(tile(x, beam_size, dim=1) for x in memory_bank)
-        else:
-            memory_bank = tile(memory_bank, beam_size, dim=1)
-        memory_lengths = tile(src_lengths, beam_size)
-
-        # (3) run the decoder to generate sentences, using beam search.
-        for i in range(self.max_length):
-            if all((b.done for b in beam)):
-                break
-
-            # (a) Construct batch x beam_size nxt words.
-            # Get all the pending current beam words and arrange for forward.
-
-            inp = torch.stack([b.current_predictions for b in beam])
-            inp = inp.view(1, -1, 1)
-
-            # (b) Decode and forward
-            out, beam_attn = self._decode_and_generate(
-                inp, memory_bank, batch, src_vocabs,
-                memory_lengths=memory_lengths, src_map=src_map, step=i
-            )
-            out = out.view(batch_size, beam_size, -1)
-            beam_attn = beam_attn.view(batch_size, beam_size, -1)
-
-            # (c) Advance each beam.
-            select_indices_array = []
-            # Loop over the batch_size number of beam
-            for j, b in enumerate(beam):
-                if not b.done:
-                    b.advance(out[j, :],
-                              beam_attn.data[j, :, :memory_lengths[j]])
-                select_indices_array.append(
-                    b.current_origin + j * beam_size)
-            select_indices = torch.cat(select_indices_array)
-
-            self.model.decoder.map_state(
-                lambda state, dim: state.index_select(dim, select_indices))
-
-        # (4) Extract sentences from beam.
-        for b in beam:
-            scores, ks = b.sort_finished(minimum=self.n_best)
-            hyps, attn = [], []
-            for times, k in ks[:self.n_best]:
-                hyp, att = b.get_hyp(times, k)
-                hyps.append(hyp)
-                attn.append(att)
-            results["predictions"].append(hyps)
-            results["scores"].append(scores)
-            results["attention"].append(attn)
-
-        return results
 
     def _score_target(self, batch, memory_bank, src_lengths,
                       src_vocabs, src_map):
