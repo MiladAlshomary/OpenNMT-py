@@ -550,7 +550,7 @@ class ContextTranslator(object):
         src, src_lengths = batch.src if isinstance(batch.src, tuple) \
                            else (batch.src, None)
 
-        if feats_proj != None:
+        if feats_proj is not None:
             enc_states, memory_bank, src_lengths = self.model.encoder(
                 src, feats_proj, src_lengths)
         else:
