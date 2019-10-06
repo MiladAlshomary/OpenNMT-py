@@ -663,7 +663,7 @@ class ContextTranslator(object):
             # combine encoder final hidden state with image features
             enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
         else:
-            enc_state, memory_bank, lengths = self.encoder(batch)
+            enc_state, memory_bank, lengths = self._run_encoder(batch)
             enc_init_state = enc_states
 
         # initialise decoder
