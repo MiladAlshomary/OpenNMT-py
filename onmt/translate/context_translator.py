@@ -698,9 +698,8 @@ class ContextTranslator(object):
         print(feats_proj.shape)
         #prepare input for the decoder
         context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
-        print(context_feats_proj.shape)
         context_feats_proj = tile(context_feats_proj, beam_size, dim=0)
-        print(context_feats_proj.shape)
+
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
             beam_size,
@@ -752,6 +751,7 @@ class ContextTranslator(object):
                     memory_bank = memory_bank.index_select(1, select_indices)
 
                 memory_lengths = memory_lengths.index_select(0, select_indices)
+                context_feats_proj = context_feats_proj.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
