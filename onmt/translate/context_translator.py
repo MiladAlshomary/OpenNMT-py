@@ -571,6 +571,7 @@ class ContextTranslator(object):
             decoder_in,
             memory_bank,
             batch,
+            context_vector,
             src_vocabs,
             memory_lengths,
             src_map=None,
@@ -588,7 +589,7 @@ class ContextTranslator(object):
         # in case of inference tgt_len = 1, batch = beam times batch_size
         # in case of Gold Scoring tgt_len = actual length, batch = 1 batch
         dec_out, dec_attn = self.model.decoder(
-            decoder_in, memory_bank, memory_lengths=memory_lengths, step=step
+            decoder_in, memory_bank, context_vector, memory_lengths=memory_lengths, step=step
         )
 
         # Generator forward.
@@ -713,6 +714,8 @@ class ContextTranslator(object):
             exclusion_tokens=self._exclusion_idxs,
             memory_lengths=memory_lengths)
 
+        context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
+
         for step in range(max_length):
             decoder_input = beam.current_predictions.view(1, -1, 1)
 
@@ -720,6 +723,7 @@ class ContextTranslator(object):
                 decoder_input,
                 memory_bank,
                 batch,
+                context_feats_proj,
                 src_vocabs,
                 memory_lengths=memory_lengths,
                 src_map=src_map,
