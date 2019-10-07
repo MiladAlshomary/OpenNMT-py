@@ -132,7 +132,7 @@ class RNNEncoderV2(EncoderBase):
     """
 
     def __init__(self, rnn_type, bidirectional, num_layers,
-                 enc_hidden_size, dec_hidden_size, context_size, dropout=0.0, embeddings=None,
+                 enc_hidden_size, dec_hidden_size, context_size, merge_context_via=None, dropout=0.0, embeddings=None,
                  use_bridge=False):
         super(RNNEncoderV2, self).__init__()
         assert embeddings is not None
@@ -141,6 +141,7 @@ class RNNEncoderV2(EncoderBase):
         assert enc_hidden_size % num_directions == 0
         enc_hidden_size = enc_hidden_size // num_directions
         self.embeddings = embeddings
+        self.merge_context_via = merge_context_via
 
         self.rnn, self.no_pack_padded_seq = \
             rnn_factory(rnn_type,
@@ -169,6 +170,7 @@ class RNNEncoderV2(EncoderBase):
             opt.enc_rnn_size,
             opt.dec_rnn_size,
             opt.context_hidden_size,
+            opt.merge_context_via,
             opt.dropout[0] if type(opt.dropout) is list else opt.dropout,
             embeddings,
             opt.bridge)
@@ -203,8 +205,13 @@ class RNNEncoderV2(EncoderBase):
         # LSTM has hidden and cell state, other only one
         number_of_states = 2 if rnn_type == "LSTM" else 1
         
-        # Total number of states
-        self.total_hidden_dim = (enc_hidden_size + context_size) * num_layers
+        if self.merge_context_via == 'concat':
+            # Total number of states
+            self.total_hidden_dim = (enc_hidden_size + context_size) * num_layers
+        else:
+            # Total number of states
+            self.total_hidden_dim = (enc_hidden_size) * num_layers
+
         self.total_out_dim    = dec_hidden_size * num_layers
 
         # Build a linear layer for each
@@ -221,7 +228,9 @@ class RNNEncoderV2(EncoderBase):
             """
 
             size = states.size()
-            states = torch.cat((states, context), -1)
+
+            if self.merge_context_via == 'concat':
+                states = torch.cat((states, context), -1)
 
             result = linear(states.view(-1, self.total_hidden_dim))
             return F.relu(result).view(size)

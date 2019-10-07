@@ -164,7 +164,7 @@ class NMTContextDModel(nn.Module):
         tgt = tgt[:-1]  # exclude last target from inputs
         
         if self.merge_context_via == 'addition':
-            enc_state, memory_bank, lengths = self.encoder(src, lengths)
+            enc_state, memory_bank, lengths = self.encoder(src, context_feats_proj, lengths)
             enc_state = self._combine_enc_state_img_proj(enc_state, context_feats_proj)
         elif self.merge_context_via == 'concat':
             enc_state, memory_bank, lengths = self.encoder(src, context_feats_proj, lengths)
