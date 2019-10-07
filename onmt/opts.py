@@ -139,7 +139,7 @@ def model_opts(parser):
     # group.add('--residual', '-residual',   action="store_true",
     #                     help="Add residual connections between RNN layers.")
 
-    group.add('--brnn', '-brnn',
+    group.add('--brnn', '-brnn', action="store_true",
               help="Deprecated, use `encoder_type`.")
 
     group.add('--context_gate', '-context_gate', type=str, default=None,
