@@ -695,7 +695,7 @@ class ContextTranslator(object):
             mb_device = memory_bank.device
         memory_lengths = tile(src_lengths, beam_size)
 
-        print(feats_proj.shape)
+
         #prepare input for the decoder
         context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
         context_feats_proj = tile(context_feats_proj, beam_size, dim=0)
