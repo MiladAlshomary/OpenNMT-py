@@ -8,7 +8,7 @@ from onmt.encoders.audio_encoder import AudioEncoder
 from onmt.encoders.image_encoder import ImageEncoder
 
 
-str2enc = {"rnn": RNNEncoder, "rnn2":RNNEncoderV2, "brnn2": RNNEncoder, "brnn": RNNEncoder, "cnn": CNNEncoder,
+str2enc = {"rnn": RNNEncoder, "rnn2":RNNEncoderV2, "brnn2": RNNEncoderV2, "brnn": RNNEncoder, "cnn": CNNEncoder,
            "transformer": TransformerEncoder, "img": ImageEncoder,
            "audio": AudioEncoder, "mean": MeanEncoder}
 
