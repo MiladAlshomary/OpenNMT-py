@@ -81,7 +81,7 @@ class RNNDecoderBase(DecoderBase):
     """
 
     def __init__(self, rnn_type, bidirectional_encoder, num_layers,
-                 hidden_size, context_hidden_size, pass_user_context_to_gate, attn_type="general", attn_func="softmax",
+                 hidden_size, context_hidden_size, pass_user_context_to_gate, concat_user_context_to_decoder_input, attn_type="general", attn_func="softmax",
                  coverage_attn=False, context_gate=None,
                  copy_attn=False, dropout=0.0, embeddings=None,
                  reuse_copy_attn=False, copy_attn_type="general"):
@@ -95,6 +95,7 @@ class RNNDecoderBase(DecoderBase):
         self.dropout = nn.Dropout(dropout)
         self.context_hidden_size = context_hidden_size
         self.pass_user_context_to_gate = pass_user_context_to_gate
+        self.concat_user_context_to_decoder_input = concat_user_context_to_decoder_input
         # Decoder state
         self.state = {}
 
@@ -155,6 +156,7 @@ class RNNDecoderBase(DecoderBase):
             opt.dec_rnn_size,
             opt.context_hidden_size * opt.dec_layers,
             opt.pass_user_context_to_gate,
+            opt.concat_user_context_to_decoder_input,
             opt.global_attention,
             opt.global_attention_function,
             opt.coverage_attn,
@@ -393,7 +395,11 @@ class InputFeedRNNDecoder(RNNDecoderBase):
         # Input feed concatenates hidden state with
         # input at every time step.
         for emb_t in emb.split(1):
-            decoder_input = torch.cat([emb_t.squeeze(0), input_feed], 1)
+            if self.concat_user_context_to_decoder_input:
+                decoder_input = torch.cat([emb_t.squeeze(0), input_feed, user_context_vec], 1)
+            else:
+                decoder_input = torch.cat([emb_t.squeeze(0), input_feed], 1)
+
             rnn_output, dec_state = self.rnn(decoder_input, dec_state)
             if self.attentional:
                 decoder_output, p_attn = self.attn(
