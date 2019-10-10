@@ -448,7 +448,10 @@ class InputFeedRNNDecoder(RNNDecoderBase):
     @property
     def _input_size(self):
         """Using input feed by concatenating input with attention vectors."""
-        return self.embeddings.embedding_size + self.hidden_size
+        if self.concat_user_context_to_decoder_input:
+            return self.embeddings.embedding_size + self.hidden_size + self.context_hidden_size
+        else:
+            return self.embeddings.embedding_size + self.hidden_size
 
     def update_dropout(self, dropout):
         self.dropout.p = dropout
