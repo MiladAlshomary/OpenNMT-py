@@ -193,6 +193,175 @@ class Beam(object):
         return hyp[::-1], torch.stack(attn[::-1])
 
 
+class MMIGlobalScorer(object):
+    """NMT re-ranking.
+
+    Args:
+       alpha (float): Length parameter.
+       beta (float):  Coverage parameter.
+       length_penalty (str): Length penalty strategy.
+       coverage_penalty (str): Coverage penalty strategy.
+
+    Attributes:
+        alpha (float): See above.
+        beta (float): See above.
+        length_penalty (callable): See :class:`penalties.PenaltyBuilder`.
+        coverage_penalty (callable): See :class:`penalties.PenaltyBuilder`.
+        has_cov_pen (bool): See :class:`penalties.PenaltyBuilder`.
+        has_len_pen (bool): See :class:`penalties.PenaltyBuilder`.
+    """
+
+    @classmethod
+    def from_opt(cls, opt):
+        return cls(
+            opt.alpha,
+            opt.beta,
+            opt.length_penalty,
+            opt.coverage_penalty)
+
+    def __init__(self, model, fields, cuda, alpha, beta, length_penalty, coverage_penalty):
+        self._validate(alpha, beta, length_penalty, coverage_penalty)
+        self.alpha = alpha
+        self.beta = beta
+        self.model = model
+        self.fields = fields
+        self.src_vocab = self.fields["src"].vocab
+        self.tgt_vocab = self.fields["tgt"].vocab
+        self.tt = torch.cuda if cuda else torch
+
+        penalty_builder = penalties.PenaltyBuilder(coverage_penalty,
+                                                   length_penalty)
+        self.has_cov_pen = penalty_builder.has_cov_pen
+        # Term will be subtracted from probability
+        self.cov_penalty = penalty_builder.coverage_penalty
+
+        self.has_len_pen = penalty_builder.has_len_pen
+        # Probability will be divided by this
+        self.length_penalty = penalty_builder.length_penalty
+
+    
+    def make_features(self, data):
+        levels = [data]
+        return torch.cat([level.unsqueeze(2) for level in levels], 2)
+
+    def _run_target(self, tgt_data, src_data, tgt_lengths):
+        tgt = Variable(self.make_features(tgt_data))
+        src_in = Variable(self.make_features(src_data)[:-1])
+        print "tgt"
+        print tgt
+        print "tgt_lengths"
+        print tgt_lengths
+        #  (1) run the encoder on the tgt
+        enc_states, memory_bank = self.model.encoder(tgt, tgt_lengths)
+        dec_states = \
+            self.model.decoder.init_decoder_state(tgt, memory_bank, enc_states)
+
+        #  (2) Compute the 'goldScore'
+        #  (i.e. log likelihood) of the source given target under the model (S|T)
+        gold_scores = self.tt.FloatTensor(1).fill_(0)
+        dec_out, dec_states, attn = self.model.decoder(
+            src_in, memory_bank, dec_states, memory_lengths=tgt_lengths)
+
+        tgt_pad = self.fields["tgt"].vocab.stoi[onmt.io.PAD_WORD]
+        for dec, src in zip(dec_out, src_data[1:]):         # src data is src + bos and eos
+            # Log prob of each word.
+            print "dec"
+            print dec
+            print "src"
+            print src
+            out = self.model.generator.forward(dec)
+            src = src.unsqueeze(1)
+            scores = out.data.gather(1, src)
+            scores.masked_fill_(src.eq(tgt_pad), 0)
+            gold_scores += scores
+        return gold_scores
+
+
+    def tgt_to_index(self, tgt):
+        return [self.tgt_vocab.stoi[word] for word in tgt]
+
+    def src_to_index(self, src):
+        return [self.src_vocab.stoi[word] for word in src]
+    
+    def mmi_score(self, beam, hyp_word):
+        # Get the source
+        src_list = self.tgt_to_index(beam.source) # beam's source is target here
+        print hyp_word
+        hyp_list = self.src_to_index(hyp_word)
+        # Src list to torch LongTensor 
+        src_list.insert(0, beam._bos)
+        src_list.append(beam._eos)
+        src_data = self.tt.LongTensor(src_list)
+        hyp_lengths = self.tt.LongTensor([len(hyp_list) - 1])
+        
+
+        hyp = self.tt.LongTensor(hyp_list[:-1])         # Remove EOS from the hyp which is the src to the MMI model
+        src_data.unsqueeze_(1)
+        hyp.unsqueeze_(1)
+        print hyp
+        score = self._run_target(hyp, src_data, hyp_lengths)
+        print score
+        return score
+
+    @classmethod
+    def _validate(cls, alpha, beta, length_penalty, coverage_penalty):
+        # these warnings indicate that either the alpha/beta
+        # forces a penalty to be a no-op, or a penalty is a no-op but
+        # the alpha/beta would suggest otherwise.
+        if length_penalty is None or length_penalty == "none":
+            if alpha != 0:
+                warnings.warn("Non-default `alpha` with no length penalty. "
+                              "`alpha` has no effect.")
+        else:
+            # using some length penalty
+            if length_penalty == "wu" and alpha == 0.:
+                warnings.warn("Using length penalty Wu with alpha==0 "
+                              "is equivalent to using length penalty none.")
+        if coverage_penalty is None or coverage_penalty == "none":
+            if beta != 0:
+                warnings.warn("Non-default `beta` with no coverage penalty. "
+                              "`beta` has no effect.")
+        else:
+            # using some coverage penalty
+            if beta == 0.:
+                warnings.warn("Non-default coverage penalty with beta==0 "
+                              "is equivalent to using coverage penalty none.")
+
+    def score(self, beam, logprobs):
+        """Rescore a prediction based on penalty functions."""
+        len_pen = self.length_penalty(len(beam.next_ys), self.alpha)
+        normalized_probs = logprobs / len_pen
+        if not beam.stepwise_penalty:
+            penalty = self.cov_penalty(beam.global_state["coverage"],
+                                       self.beta)
+            normalized_probs -= penalty
+
+        return normalized_probs
+
+    def update_score(self, beam, attn):
+        """Update scores of a Beam that is not finished."""
+        if "prev_penalty" in beam.global_state.keys():
+            beam.scores.add_(beam.global_state["prev_penalty"])
+            penalty = self.cov_penalty(beam.global_state["coverage"] + attn,
+                                       self.beta)
+            beam.scores.sub_(penalty)
+
+    def update_global_state(self, beam):
+        """Keeps the coverage vector as sum of attentions."""
+        if len(beam.prev_ks) == 1:
+            beam.global_state["prev_penalty"] = beam.scores.clone().fill_(0.0)
+            beam.global_state["coverage"] = beam.attn[-1]
+            self.cov_total = beam.attn[-1].sum(1)
+        else:
+            self.cov_total += torch.min(beam.attn[-1],
+                                        beam.global_state['coverage']).sum(1)
+            beam.global_state["coverage"] = beam.global_state["coverage"] \
+                .index_select(0, beam.prev_ks[-1]).add(beam.attn[-1])
+
+            prev_penalty = self.cov_penalty(beam.global_state["coverage"],
+                                            self.beta)
+            beam.global_state["prev_penalty"] = prev_penalty
+
 class GNMTGlobalScorer(object):
     """NMT re-ranking.
 
@@ -290,4 +459,4 @@ class GNMTGlobalScorer(object):
 
             prev_penalty = self.cov_penalty(beam.global_state["coverage"],
                                             self.beta)
-            beam.global_state["prev_penalty"] = prev_penalty
+            beam.global_state["prev_penalty"] = prev_penalt
