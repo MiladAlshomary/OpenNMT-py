@@ -247,10 +247,8 @@ class MMIGlobalScorer(object):
     def _run_target(self, tgt_data, src_data, tgt_lengths):
         tgt = Variable(self.make_features(tgt_data))
         src_in = Variable(self.make_features(src_data)[:-1])
-        print "tgt"
-        print tgt
-        print "tgt_lengths"
-        print tgt_lengths
+        print("tgt ", tgt)
+        print("tgt_lengths", tgt_lengths)
         #  (1) run the encoder on the tgt
         enc_states, memory_bank = self.model.encoder(tgt, tgt_lengths)
         dec_states = \
@@ -265,10 +263,9 @@ class MMIGlobalScorer(object):
         tgt_pad = self.fields["tgt"].vocab.stoi[onmt.io.PAD_WORD]
         for dec, src in zip(dec_out, src_data[1:]):         # src data is src + bos and eos
             # Log prob of each word.
-            print "dec"
-            print dec
-            print "src"
-            print src
+            print("dec", dec)
+            print("src", src)
+
             out = self.model.generator.forward(dec)
             src = src.unsqueeze(1)
             scores = out.data.gather(1, src)
@@ -286,7 +283,7 @@ class MMIGlobalScorer(object):
     def mmi_score(self, beam, hyp_word):
         # Get the source
         src_list = self.tgt_to_index(beam.source) # beam's source is target here
-        print hyp_word
+        print(hyp_word)
         hyp_list = self.src_to_index(hyp_word)
         # Src list to torch LongTensor 
         src_list.insert(0, beam._bos)
@@ -298,9 +295,9 @@ class MMIGlobalScorer(object):
         hyp = self.tt.LongTensor(hyp_list[:-1])         # Remove EOS from the hyp which is the src to the MMI model
         src_data.unsqueeze_(1)
         hyp.unsqueeze_(1)
-        print hyp
+        print(hyp)
         score = self._run_target(hyp, src_data, hyp_lengths)
-        print score
+        print(score)
         return score
 
     @classmethod
