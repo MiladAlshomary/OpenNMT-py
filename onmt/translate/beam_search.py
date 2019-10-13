@@ -135,6 +135,10 @@ class BeamSearch(DecodeStrategy):
                 self._coverage + attn, self.global_scorer.beta).view(
                 _B, self.beam_size)
 
+        print('topk_log_probs')
+        print(self.topk_log_probs.shape)
+        print(self.topk_log_probs)
+        
         # force the output to be longer than self.min_length
         step = len(self)
         self.ensure_min_length(log_probs)
@@ -148,6 +152,7 @@ class BeamSearch(DecodeStrategy):
         # length + 1, to include the EOS token
         length_penalty = self.global_scorer.length_penalty(
             step + 1, alpha=self.global_scorer.alpha)
+
 
         # Flatten probs into a list of possibilities.
         curr_scores = log_probs / length_penalty

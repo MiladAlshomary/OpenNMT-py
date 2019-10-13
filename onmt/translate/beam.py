@@ -456,4 +456,4 @@ class GNMTGlobalScorer(object):
 
             prev_penalty = self.cov_penalty(beam.global_state["coverage"],
                                             self.beta)
-            beam.global_state["prev_penalty"] = prev_penalt
+            beam.global_state["prev_penalty"] = prev_penal
