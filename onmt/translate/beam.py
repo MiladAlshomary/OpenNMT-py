@@ -1,5 +1,7 @@
 from __future__ import division
 import torch
+from torch.autograd import Variable
+
 from onmt.translate import penalties
 
 import warnings
@@ -52,7 +54,7 @@ class Beam(object):
         self.next_ys[0][0] = bos
 
         # Has EOS topped the beam yet.
-        self._eos = eos
+        self.eos = eos
         self.eos_top = False
 
         # The attentions (matrix) for each time.
@@ -106,14 +108,14 @@ class Beam(object):
             # assumes there are len(word_probs) predictions OTHER
             # than EOS that are greater than -1e20
             for k in range(len(word_probs)):
-                word_probs[k][self._eos] = -1e20
+                word_probs[k][self.eos] = -1e20
 
         # Sum the previous scores.
         if len(self.prev_ks) > 0:
             beam_scores = word_probs + self.scores.unsqueeze(1)
             # Don't let EOS have children.
             for i in range(self.next_ys[-1].size(0)):
-                if self.next_ys[-1][i] == self._eos:
+                if self.next_ys[-1][i] == self.eos:
                     beam_scores[i] = -1e20
 
             # Block ngram repeats
@@ -154,13 +156,13 @@ class Beam(object):
         self.global_scorer.update_global_state(self)
 
         for i in range(self.next_ys[-1].size(0)):
-            if self.next_ys[-1][i] == self._eos:
+            if self.next_ys[-1][i] == self.eos:
                 global_scores = self.global_scorer.score(self, self.scores)
                 s = global_scores[i]
                 self.finished.append((s, len(self.next_ys) - 1, i))
 
         # End condition is when top-of-beam is EOS and no global score.
-        if self.next_ys[-1][0] == self._eos:
+        if self.next_ys[-1][0] == self.eos:
             self.all_scores.append(self.scores)
             self.eos_top = True
 
@@ -225,9 +227,16 @@ class MMIGlobalScorer(object):
         self.beta = beta
         self.model = model
         self.fields = fields
-        self.src_vocab = self.fields["src"].vocab
-        self.tgt_vocab = self.fields["tgt"].vocab
+        self.src_vocab = self.fields["src"][0][1].vocab
+        self.tgt_vocab = self.fields["tgt"][0][1].vocab
         self.tt = torch.cuda if cuda else torch
+
+        tgt_field = dict(self.fields)["tgt"].base_field
+        self._tgt_vocab = tgt_field.vocab
+        self._tgt_eos_idx = self._tgt_vocab.stoi[tgt_field.eos_token]
+        self._tgt_pad_idx = self._tgt_vocab.stoi[tgt_field.pad_token]
+        self._tgt_bos_idx = self._tgt_vocab.stoi[tgt_field.init_token]
+        self._tgt_unk_idx = self._tgt_vocab.stoi[tgt_field.unk_token]
 
         penalty_builder = penalties.PenaltyBuilder(coverage_penalty,
                                                    length_penalty)
@@ -238,7 +247,6 @@ class MMIGlobalScorer(object):
         self.has_len_pen = penalty_builder.has_len_pen
         # Probability will be divided by this
         self.length_penalty = penalty_builder.length_penalty
-
     
     def make_features(self, data):
         levels = [data]
@@ -250,25 +258,26 @@ class MMIGlobalScorer(object):
         print("tgt ", tgt)
         print("tgt_lengths", tgt_lengths)
         #  (1) run the encoder on the tgt
-        enc_states, memory_bank = self.model.encoder(tgt, tgt_lengths)
+        enc_states, memory_bank , lengths= self.model.encoder(tgt, tgt_lengths)
         dec_states = \
-            self.model.decoder.init_decoder_state(tgt, memory_bank, enc_states)
+            self.model.decoder.init_state(tgt, memory_bank, enc_states)
 
         #  (2) Compute the 'goldScore'
         #  (i.e. log likelihood) of the source given target under the model (S|T)
         gold_scores = self.tt.FloatTensor(1).fill_(0)
-        dec_out, dec_states, attn = self.model.decoder(
+        dec_out, attn = self.model.decoder(
             src_in, memory_bank, dec_states, memory_lengths=tgt_lengths)
 
-        tgt_pad = self.fields["tgt"].vocab.stoi[onmt.io.PAD_WORD]
+        tgt_pad = self.fields["tgt"][0][1].vocab.stoi[self._tgt_pad_idx]
         for dec, src in zip(dec_out, src_data[1:]):         # src data is src + bos and eos
-            # Log prob of each word.
-            print("dec", dec)
-            print("src", src)
+            # # Log prob of each word.
+            # print("dec", dec)
+            # print("src", src)
 
             out = self.model.generator.forward(dec)
             src = src.unsqueeze(1)
             scores = out.data.gather(1, src)
+            print(scores)
             scores.masked_fill_(src.eq(tgt_pad), 0)
             gold_scores += scores
         return gold_scores
@@ -280,25 +289,31 @@ class MMIGlobalScorer(object):
     def src_to_index(self, src):
         return [self.src_vocab.stoi[word] for word in src]
     
-    def mmi_score(self, beam, hyp_word):
-        # Get the source
-        src_list = self.tgt_to_index(beam.source) # beam's source is target here
-        print(hyp_word)
-        hyp_list = self.src_to_index(hyp_word)
-        # Src list to torch LongTensor 
-        src_list.insert(0, beam._bos)
-        src_list.append(beam._eos)
-        src_data = self.tt.LongTensor(src_list)
-        hyp_lengths = self.tt.LongTensor([len(hyp_list) - 1])
-        
+    def mmi_score(self, beam):
+        scores = []
+        for hyp_word in beam.alive_seq:
+            # Get the source
+            src_list = self.tgt_to_index(beam.source) # beam's source is target here
+            print(src_list)
+            print(beam.source)
+            print('hyp word:', hyp_word)
+            hyp_list = self.src_to_index(hyp_word)
+            # Src list to torch LongTensor 
+            src_list.insert(0, self._tgt_bos_idx)
+            src_list.append(self._tgt_eos_idx)
+            src_data = self.tt.LongTensor(src_list)
+            hyp_lengths = self.tt.LongTensor([len(hyp_list) - 1])
+            
 
-        hyp = self.tt.LongTensor(hyp_list[:-1])         # Remove EOS from the hyp which is the src to the MMI model
-        src_data.unsqueeze_(1)
-        hyp.unsqueeze_(1)
-        print(hyp)
-        score = self._run_target(hyp, src_data, hyp_lengths)
-        print(score)
-        return score
+            hyp = self.tt.LongTensor(hyp_list[:-1])         # Remove EOS from the hyp which is the src to the MMI model
+            src_data.unsqueeze_(1)
+            hyp.unsqueeze_(1)
+            print(hyp)
+            score = self._run_target(hyp, src_data, hyp_lengths)
+            print(score)
+            scores.append(score)
+
+        return scores
 
     @classmethod
     def _validate(cls, alpha, beta, length_penalty, coverage_penalty):

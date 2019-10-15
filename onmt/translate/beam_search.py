@@ -1,7 +1,7 @@
 import torch
+import onmt
 
 from onmt.translate.decode_strategy import DecodeStrategy
-
 
 class BeamSearch(DecodeStrategy):
     """Generation beam search.
@@ -56,7 +56,7 @@ class BeamSearch(DecodeStrategy):
     def __init__(self, beam_size, batch_size, pad, bos, eos, n_best, mb_device,
                  global_scorer, min_length, max_length, return_attention,
                  block_ngram_repeat, exclusion_tokens, memory_lengths,
-                 stepwise_penalty, ratio):
+                 stepwise_penalty, ratio, src=None):
         super(BeamSearch, self).__init__(
             pad, bos, eos, batch_size, mb_device, beam_size, min_length,
             block_ngram_repeat, exclusion_tokens, return_attention,
@@ -67,6 +67,7 @@ class BeamSearch(DecodeStrategy):
         self.n_best = n_best
         self.batch_size = batch_size
         self.ratio = ratio
+        self.source = src
 
         # result caching
         self.hypotheses = [[] for _ in range(batch_size)]
@@ -135,10 +136,6 @@ class BeamSearch(DecodeStrategy):
                 self._coverage + attn, self.global_scorer.beta).view(
                 _B, self.beam_size)
 
-        print('topk_log_probs')
-        print(self.topk_log_probs.shape)
-        print(self.topk_log_probs)
-        
         # force the output to be longer than self.min_length
         step = len(self)
         self.ensure_min_length(log_probs)
@@ -153,12 +150,12 @@ class BeamSearch(DecodeStrategy):
         length_penalty = self.global_scorer.length_penalty(
             step + 1, alpha=self.global_scorer.alpha)
 
-
         # Flatten probs into a list of possibilities.
         curr_scores = log_probs / length_penalty
         curr_scores = curr_scores.reshape(_B, self.beam_size * vocab_size)
         torch.topk(curr_scores,  self.beam_size, dim=-1,
                    out=(self.topk_scores, self.topk_ids))
+
 
         # Recover log probs.
         # Length penalty is just a scalar. It doesn't matter if it's applied
@@ -176,6 +173,11 @@ class BeamSearch(DecodeStrategy):
         self.alive_seq = torch.cat(
             [self.alive_seq.index_select(0, self.select_indices),
              self.topk_ids.view(_B * self.beam_size, 1)], -1)
+
+        #Re-rank using mmi scoring 
+        if self.source is not None and isinstance(self.global_scorer, onmt.translate.MMIGlobalScorer):
+            self.global_scorer =  self.global_scorer.mmi_score(self)
+
         if self.return_attention or self._cov_pen:
             current_attn = attn.index_select(1, self.select_indices)
             if step == 1:

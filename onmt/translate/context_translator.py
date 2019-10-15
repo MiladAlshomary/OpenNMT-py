@@ -717,7 +717,10 @@ class ContextTranslator(object):
             stepwise_penalty=self.stepwise_penalty,
             block_ngram_repeat=self.block_ngram_repeat,
             exclusion_tokens=self._exclusion_idxs,
-            memory_lengths=memory_lengths)
+            memory_lengths=memory_lengths,
+            src=src)
+
+        self.beam = beam
 
         for step in range(max_length):
             decoder_input = beam.current_predictions.view(1, -1, 1)
