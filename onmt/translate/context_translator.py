@@ -349,6 +349,7 @@ class ContextTranslator(object):
         gold_score_total, gold_words_total = 0, 0
 
         all_scores = []
+        all_gold_scores = []
         all_predictions = []
 
         start_time = time.time()
@@ -362,6 +363,7 @@ class ContextTranslator(object):
 
             for trans in translations:
                 all_scores += [trans.pred_scores[:self.n_best]]
+                all_gold_scores.append(trans.gold_score)
                 pred_score_total += trans.pred_scores[0]
                 pred_words_total += len(trans.pred_sents[0])
                 if tgt is not None:
@@ -427,7 +429,7 @@ class ContextTranslator(object):
             import json
             json.dump(self.translator.beam_accum,
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
-        return all_scores, all_predictions
+        return all_scores, all_gold_scores, all_predictions
 
     def _translate_random_sampling(
             self,
