@@ -162,8 +162,9 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     decoder = build_decoder(model_opt, tgt_emb)
 
+    context_feats_num_layers = 1 if model_opt.concat_user_context_to_decoder_input else model_opt.dec_layers
     # An encoder to encode the contextual features
-    context_encoder = onmt.models.ContextualFeaturesProjector( model_opt.dec_layers, 
+    context_encoder = onmt.models.ContextualFeaturesProjector( context_feats_num_layers, 
                                                                 model_opt.context_feat_size, 
                                                                 model_opt.context_hidden_size,
                                                                 model_opt.context_dropout, 
