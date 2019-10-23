@@ -154,7 +154,7 @@ class RNNDecoderBase(DecoderBase):
             opt.brnn,
             opt.dec_layers,
             opt.dec_rnn_size,
-            opt.context_hidden_size * opt.dec_layers,
+            opt.context_hidden_size,
             opt.pass_user_context_to_gate,
             opt.concat_user_context_to_decoder_input,
             opt.global_attention,
