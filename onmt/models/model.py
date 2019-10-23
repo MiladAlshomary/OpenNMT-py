@@ -176,7 +176,7 @@ class NMTContextDModel(nn.Module):
             self.decoder.init_state(src, memory_bank, enc_state)
         
         #from num_layers x batch_szie x context_hidden_size => batch_size x context_hidden_size * 2
-        context_feats_proj = torch.cat((context_feats_proj[0], context_feats_proj[1]), 1)
+        #context_feats_proj = torch.cat((context_feats_proj[0], context_feats_proj[1]), 1)
         dec_out, attns = self.decoder(tgt, memory_bank, context_feats_proj,
                                       memory_lengths=lengths)
         return dec_out, attns
