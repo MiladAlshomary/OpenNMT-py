@@ -67,7 +67,7 @@ def model_opts(parser):
     
     group.add('--multimodal_model_type', '-multimodal_model_type', default='none',
               choices=['context-d', 'none'])
-    group.add('--merge_context_via', '-merge_context_via', default='concat',
+    group.add('--merge_context_via', '-merge_context_via', default='none',
               choices=['concat', 'addition', 'none'])
     group.add('--pass_user_context_to_gate', '-pass_user_context_to_gate', action="store_true")
     group.add('--concat_user_context_to_decoder_input', '-concat_user_context_to_decoder_input', action="store_true")
