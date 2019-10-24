@@ -699,7 +699,7 @@ class ContextTranslator(object):
 
 
         #prepare input for the decoder
-        context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
+        #context_feats_proj = torch.cat((feats_proj[0], feats_proj[1]), 1)
         context_feats_proj = tile(context_feats_proj, beam_size, dim=0)
 
         # (0) pt 2, prep the beam object
