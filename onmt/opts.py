@@ -86,8 +86,17 @@ def model_opts(parser):
     group.add('--layers', '-layers', type=int, default=-1,
               help='Number of layers in enc/dec.')
 
-    group.add('--context_feat_size', '-context_feat_size', type=int, default=48,
-              help='Number of features for the context feature vector.')
+    group.add('--project_user', '-project_user', action='store_true',
+      help='Pass user vector through a FF')
+    group.add('--user_feat_size', '-user_feat_size', type=int, default=48,
+              help='Number of features for the user feature vector.')
+
+    group.add('--user_hidden_size', '-user_hidden_size', type=int, default=16,
+              help='Number of features for the user feature vector.')
+
+    group.add('--key_phrases_feat_size', '-key_phrases_feat_size', type=int, default=48,
+              help='Number of features for the user feature vector.')
+    
     group.add('--context_dropout', '-context_dropout', type=float, default=0.0,
       help='Dropout applied on the context encoder.')
     group.add('--use_nonlinear_projection', '-use_nonlinear_projection', action='store_true',
@@ -343,6 +352,12 @@ def train_opts(parser):
 
     group.add('--path_to_valid_profiles_feats', '-path_to_valid_profiles_feats',
               help="Path to the validation profiles")
+
+    group.add('--path_to_train_key_phrases', '-path_to_train_key_phrases',
+              help="Path to the training key phrases")
+
+    group.add('--path_to_valid_key_phrases', '-path_to_valid_key_phrases',
+              help="Path to the validation key phrases")
 
 
     group.add('--save_model', '-save_model', default='model',

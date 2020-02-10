@@ -190,13 +190,15 @@ class Trainer(object):
                     cpt.detach().float() * average_decay
 
     def train(self,
-              train_iter,
-              train_steps,
-              save_checkpoint_steps=5000,
-              valid_iter=None,
-              valid_steps=10000,
-              train_profiles=None,
-              valid_profiles=None):
+            train_iter,
+            train_steps,
+            save_checkpoint_steps=5000,
+            valid_iter=None,
+            valid_steps=10000,
+            training_profiles=None,
+            valid_profiles=None,
+            training_key_phrases=None,
+            valid_key_phrases=None):
         """
         The main training loop by iterating over `train_iter` and possibly
         running validation on `valid_iter`.
@@ -241,7 +243,7 @@ class Trainer(object):
                                     (normalization))
 
             self._gradient_accumulation(
-                batches, train_profiles, normalization, total_stats,
+                batches, training_profiles, training_key_phrases, normalization, total_stats,
                 report_stats)
 
             if self.average_decay > 0 and i % self.average_every == 0:
@@ -257,7 +259,7 @@ class Trainer(object):
                     logger.info('GpuRank %d: validate step %d'
                                 % (self.gpu_rank, step))
                 valid_stats = self.validate(
-                    valid_iter, valid_profiles, moving_average=self.moving_average)
+                    valid_iter, valid_profiles, valid_key_phrases, moving_average=self.moving_average)
                 if self.gpu_verbose_level > 0:
                     logger.info('GpuRank %d: gather valid stat \
                                 step %d' % (self.gpu_rank, step))
@@ -337,7 +339,7 @@ class Trainer(object):
 
         return stats
 
-    def _gradient_accumulation(self, true_batches, context_feats, normalization, total_stats,
+    def _gradient_accumulation(self, true_batches, user_feats, key_phrases_feats, normalization, total_stats,
                                report_stats):
         if self.accum_count > 1:
             self.optim.zero_grad()
@@ -360,13 +362,15 @@ class Trainer(object):
             idxs = batch.indices.cpu().data.numpy()
 
             # load image features for this minibatch into a pytorch Variable
-            batch_context_feats = torch.from_numpy( context_feats[idxs] )
-            batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+            batch_user_feats = torch.from_numpy( user_feats[idxs] )
+            batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
+
+            batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
             
             if next(self.model.parameters()).is_cuda:
-                batch_context_feats = batch_context_feats.cuda()
+                batch_user_feats = batch_user_feats.cuda()
             else:
-                batch_context_feats = batch_context_feats.cpu()
+                batch_user_feats = batch_user_feats.cpu()
 
             bptt = False
             for j in range(0, target_size-1, trunc_size):
@@ -377,7 +381,7 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
 
-                outputs, attns = self.model(src, tgt, src_lengths, batch_context_feats, bptt=bptt)
+                outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, batch_key_phrases_feats, batch_key_phrases_lens, bptt=bptt)
                 bptt = True
 
                 # 3. Compute loss.

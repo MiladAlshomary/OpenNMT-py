@@ -538,7 +538,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
 
 
         #setup attention on the context_feature vector
-        self.attn_context = GlobalAttention(
+        self.kye_phrase_attn = GlobalAttention(
             hidden_size,
             coverage=False, # coverage not yet implemented for visual attention
             attn_type=attn_type, 
@@ -578,7 +578,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             opt.reuse_copy_attn,
             opt.copy_attn_type)
 
-    def init_state(self, memory_bank, context_vector, encoder_final):
+    def init_state(self, memory_bank, encoder_final):
         """Initialize decoder state with last state of the encoder."""
         def _fix_enc_hidden(hidden):
             # The encoder hidden is  (layers*directions) x batch x dim.
@@ -599,7 +599,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         h_size = (batch_size, self.hidden_size)
         self.state["input_feed"] = \
             self.state["hidden"][0].data.new(*h_size).zero_().unsqueeze(0)
-        self.state["input_feed_context"] = Variable(context_vector.data.new(*h_size).zero_(),
+        self.state["input_feed_context"] = Variable(key_phrases.data.new(*h_size).zero_(),
                                        requires_grad=False).unsqueeze(0)
         self.state["coverage"] = None
 
@@ -613,7 +613,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         self.state["hidden"] = tuple(h.detach() for h in self.state["hidden"])
         self.state["input_feed"] = self.state["input_feed"].detach()
 
-    def forward(self, tgt, memory_bank, context_vector, memory_lengths=None, step=None):
+    def forward(self, tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=None, step=None):
         """
         Args:
             tgt (LongTensor): sequences of padded tokens
@@ -633,11 +633,11 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         """
 
         # transpose image feats from (batch x len x feats) to (len x batch x feats)
-        context_vector = context_vector.transpose(0,1)
+        key_phrases_vectors = key_phrases_vectors.transpose(0,1)
 
 
         dec_state, dec_outs, context_outs, attns = self._run_forward_pass(
-            tgt, memory_bank, context_vector, memory_lengths=memory_lengths)
+            tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=memory_lengths)
 
         # Update the state with the result.
         if not isinstance(dec_state, tuple):
@@ -696,7 +696,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           G --> H
     """
 
-  def _run_forward_pass(self, tgt, memory_bank, context_vector, memory_lengths=None):
+  def _run_forward_pass(self, tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=None):
       """
       See StdRNNDecoder._run_forward_pass() for description
       of arguments and return values.
@@ -736,10 +736,10 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)
 
-              attn_output_context, attn_context = self.attn_context(
+              attn_output_context, kye_phrase_attn = self.kye_phrase_attn(
               rnn_output,
-              context_vector.transpose(0, 1),
-              memory_lengths=None)
+              key_phrases_vectors.transpose(0, 1),
+              memory_lengths=key_phrases_lens)
 
               attns["std"].append(p_attn)
           else:

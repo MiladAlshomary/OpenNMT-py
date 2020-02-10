@@ -3,6 +3,7 @@
 import os
 import pickle
 import torch
+import numpy as np
 
 from onmt.inputters.inputter import build_dataset_iter, \
     load_old_vocab, old_style_vocab, build_dataset_iter_multiple
@@ -98,8 +99,11 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         opt, device_id, model, fields, optim, model_saver=model_saver)
 
     #Loading user profiles
-    train_feats = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
-    valid_feats = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
+    training_profiles = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
+    valid_profiles    = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
+
+    training_key_phrases = np.array(pickle.load(open(opt.path_to_train_key_phrases, 'rb')))
+    valid_key_phrases    = np.array(pickle.load(open(opt.path_to_valid_key_phrases, 'rb')))
 
     if batch_queue is None:
         if len(opt.data_ids) > 1:
@@ -145,8 +149,10 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         save_checkpoint_steps=opt.save_checkpoint_steps,
         valid_iter=valid_iter,
         valid_steps=opt.valid_steps,
-        train_profiles=train_feats,
-        valid_profiles=valid_feats)
+        training_profiles=training_profiles,
+        valid_profiles=valid_profiles,
+        training_key_phrases=training_key_phrases,
+        valid_key_phrases=valid_key_phrases)
 
     if opt.tensorboard:
         trainer.report_manager.tensorboard_writer.close()

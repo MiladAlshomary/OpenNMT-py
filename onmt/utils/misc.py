@@ -124,3 +124,19 @@ def relative_matmul(x, z, transpose):
 def fn_args(fun):
     """Returns the list of function arguments name."""
     return inspect.getfullargspec(fun).args
+
+def pad_batch(batch):
+    from torch.nn.utils.rnn import pad_sequence
+
+    seq_lens = list(map(lambda x: len(x), batch))
+    max_len  = max(seq_lens) 
+
+    batch_tensors = [torch.tensor(item).double() for item in batch]
+
+    #padding 
+    batch_tensor   = pad_sequence(batch_tensors, batch_first=True).double()
+    seq_len_tensor = torch.tensor(seq_lens)
+    
+    print(batch_tensor.shape)
+    print(batch_tensor.type())
+    return batch_tensor, seq_len_tensor

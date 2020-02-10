@@ -162,13 +162,13 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     decoder = build_decoder(model_opt, tgt_emb)
 
-    if model_opt.multimodal_model_type == 'context-d':
+    if model_opt.project_user:
         # An encoder to encode the contextual features
-        context_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.context_feat_size, model_opt.dec_rnn_size,
+        user_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.user_feat_size, model_opt.user_hidden_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
-    else:
-        context_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.context_feat_size, model_opt.dec_rnn_size,
-                model_opt.context_dropout, model_opt.use_nonlinear_projection)
+
+    key_phrases_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.key_phrases_feat_size, model_opt.dec_rnn_size,
+            model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:
@@ -178,11 +178,8 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     elif not gpu:
         device = torch.device("cpu")
 
-    if model_opt.multimodal_model_type == 'context-d':
-        print('Building NMTContextDModel...')
-        model = onmt.models.NMTContextDModel(encoder, decoder, context_encoder)
-    elif model_opt.multimodal_model_type == 'doubly-attn':
-        model = onmt.models.NMTSrcContextModel(encoder, decoder, context_encoder)
+    if model_opt.multimodal_model_type == 'doubly-attn':
+        model = onmt.models.NMTSrcContextModel(encoder, decoder, user_encoder, key_phrases_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 
