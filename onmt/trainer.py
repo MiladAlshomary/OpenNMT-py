@@ -369,8 +369,12 @@ class Trainer(object):
             
             if next(self.model.parameters()).is_cuda:
                 batch_user_feats = batch_user_feats.cuda()
+                batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+                batch_key_phrases_lens = batch_key_phrases_lens.cuda()
             else:
                 batch_user_feats = batch_user_feats.cpu()
+                batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+                batch_key_phrases_lens = batch_key_phrases_lens.cpu()
 
             bptt = False
             for j in range(0, target_size-1, trunc_size):
