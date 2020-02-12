@@ -131,10 +131,10 @@ def pad_batch(batch):
     seq_lens = list(map(lambda x: len(x), batch))
     max_len  = max(seq_lens) 
 
-    batch_tensors = [torch.tensor(item).double() for item in batch]
+    batch_tensors = [torch.tensor(item).float() for item in batch]
 
     #padding 
-    batch_tensor   = pad_sequence(batch_tensors, batch_first=True).double()
+    batch_tensor   = pad_sequence(batch_tensors, batch_first=True).float()
     seq_len_tensor = torch.tensor(seq_lens)
     
     print(batch_tensor.shape)

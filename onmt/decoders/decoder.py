@@ -578,7 +578,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             opt.reuse_copy_attn,
             opt.copy_attn_type)
 
-    def init_state(self, memory_bank, encoder_final):
+    def init_state(self, memory_bank, key_phrases, encoder_final):
         """Initialize decoder state with last state of the encoder."""
         def _fix_enc_hidden(hidden):
             # The encoder hidden is  (layers*directions) x batch x dim.
@@ -734,10 +734,10 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
               decoder_output, p_attn = self.attn(
                   rnn_output,
                   memory_bank.transpose(0, 1),
-                  memory_lengths=memory_lengths)
+                  memory_lengths=memory_lengths)   
 
               attn_output_context, kye_phrase_attn = self.kye_phrase_attn(
-              rnn_output,
+              rnn_output.transpose(0, 1).contiguous(),
               key_phrases_vectors.transpose(0, 1),
               memory_lengths=key_phrases_lens)
 

@@ -94,6 +94,8 @@ def model_opts(parser):
     group.add('--user_hidden_size', '-user_hidden_size', type=int, default=16,
               help='Number of features for the user feature vector.')
 
+    group.add('--project_key_phrases', '-project_key_phrases', action='store_true',
+      help='Pass key phrases vectors through a FF')
     group.add('--key_phrases_feat_size', '-key_phrases_feat_size', type=int, default=48,
               help='Number of features for the user feature vector.')
     

@@ -264,8 +264,12 @@ class NMTSrcContextModel(nn.Module):
                  * final decoder state
         """
 
-        # project/transform local image features into the expected structure/shape
-        key_phrases_feats_proj = self.key_phrases_encoder( key_phrases_feats )
+        if self.key_phrases_encoder is not None:
+            # project/transform local image features into the expected structure/shape
+            key_phrases_feats_proj = self.key_phrases_encoder( key_phrases_feats )
+        else:
+            key_phrases_feats_proj = key_phrases_feats
+
         user_feats_proj = self.user_encoder(user_feats)
 
         tgt = tgt[:-1]  # exclude last target from inputs
@@ -275,7 +279,7 @@ class NMTSrcContextModel(nn.Module):
         if bptt is False:
             enc_state = self.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_state)
 
-        out, out_imgs, attns = self.decoder(tgt, memory_bank, key_phrases_feats_proj, key_phrases_len, user_feats_proj, memory_lengths=lengths)
+        out, out_imgs, attns = self.decoder(tgt, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=lengths)
         
         if self.multigpu:
             # Not yet supported on multi-gpu
