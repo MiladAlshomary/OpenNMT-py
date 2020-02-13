@@ -737,7 +737,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_lengths=memory_lengths)   
 
               attn_output_context, kye_phrase_attn = self.kye_phrase_attn(
-              rnn_output.transpose(0, 1).contiguous(),
+              rnn_output,
               key_phrases_vectors.transpose(0, 1),
               memory_lengths=key_phrases_lens)
 
