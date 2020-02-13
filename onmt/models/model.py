@@ -85,7 +85,7 @@ class ContextLocalFeaturesProjector(nn.Module):
         
         layers = []
         # # reshape input
-        layers.append(View(-1, 1, nfeats) )
+        layers.append(View(-1, 5, nfeats) )
         # linear projection from feats to rnn size
         layers.append( nn.Linear(nfeats, outdim*num_layers) )
         if use_nonlinear_projection:

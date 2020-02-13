@@ -125,18 +125,20 @@ def fn_args(fun):
     """Returns the list of function arguments name."""
     return inspect.getfullargspec(fun).args
 
-def pad_batch(batch):
-    from torch.nn.utils.rnn import pad_sequence
+def pad_batch(batch, padding_dim=5):
+    from torch.nn.utils.rnn  import pad_sequence
+    from torch.nn.functional import pad
+
+    #trim key phrases to maximum 5 phrases
+    #batch = [x[0:padding_dim] for x in batch]
 
     seq_lens = list(map(lambda x: len(x), batch))
-    max_len  = max(seq_lens) 
-
-    batch_tensors = [torch.tensor(item).float() for item in batch]
+    max_len  = max(seq_lens)
 
     #padding 
-    batch_tensor   = pad_sequence(batch_tensors, batch_first=True).float()
+    batch_tensor = pad_sequence(batch, batch_first=True).float()
+    batch_dims   = batch_tensor.size()
+    batch_tensor = pad(batch_tensor, (0,0, 0, 5 - batch_dims[1], 0,0)) 
     seq_len_tensor = torch.tensor(seq_lens)
     
-    print(batch_tensor.shape)
-    print(batch_tensor.type())
     return batch_tensor, seq_len_tensor
