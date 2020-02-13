@@ -136,6 +136,7 @@ def pad_batch(batch, padding_dim=5):
     max_len  = max(seq_lens)
 
     #padding 
+    batch = [torch.from_numpy(x) for x in batch]
     batch_tensor = pad_sequence(batch, batch_first=True).float()
     batch_dims   = batch_tensor.size()
     batch_tensor = pad(batch_tensor, (0,0, 0, 5 - batch_dims[1], 0,0)) 
