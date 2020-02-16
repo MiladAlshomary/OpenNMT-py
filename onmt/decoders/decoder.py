@@ -552,7 +552,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         )
 
         self.user_decoder_state_layer = nn.Sequential(
-            nn.Linear(hidden_size + user_hidden_size, dec_rnn_size),
+            nn.Linear(hidden_size + user_hidden_size, hidden_size),
             nn.Tanh()
         )
 
