@@ -259,7 +259,7 @@ class Trainer(object):
                     logger.info('GpuRank %d: validate step %d'
                                 % (self.gpu_rank, step))
                 valid_stats = self.validate(
-                    valid_iter, valid_profiles, valid_key_phrases, moving_average=self.moving_average)
+                    valid_iter, valid_key_phrases, valid_profiles, moving_average=self.moving_average)
                 if self.gpu_verbose_level > 0:
                     logger.info('GpuRank %d: gather valid stat \
                                 step %d' % (self.gpu_rank, step))
@@ -288,7 +288,7 @@ class Trainer(object):
             self.model_saver.save(step, moving_average=self.moving_average)
         return total_stats
 
-    def validate(self, valid_iter, context_feats=None, moving_average=None):
+    def validate(self, valid_iter, key_phrases_feats, context_feats=None, moving_average=None):
         """ Validate model.
             valid_iter: validate data iterator
         Returns:
@@ -317,13 +317,21 @@ class Trainer(object):
                 idxs  = batch.indices.cpu().data.numpy()
                 batch_context_feats = torch.from_numpy(context_feats[idxs])
                 batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+
+                batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
+
                 if next(valid_model.parameters()).is_cuda:
                     batch_context_feats = batch_context_feats.cuda()
+                    batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+                    batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
                 else:
                     batch_context_feats = batch_context_feats.cpu()
+                    batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+                    batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
 
                 # F-prop through the model.
-                outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
+
+                outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
 
                 # Compute loss.
                 _, batch_stats = self.valid_loss(batch, outputs, attns)
