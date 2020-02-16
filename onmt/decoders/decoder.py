@@ -551,6 +551,11 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             nn.Tanh()
         )
 
+        self.user_decoder_state_layer = nn.Sequential(
+            nn.Linear(hidden_size + user_hidden_size, dec_rnn_size),
+            nn.Tanh()
+        )
+
         if copy_attn and not reuse_copy_attn:
             if copy_attn_type == "none" or copy_attn_type is None:
                 raise ValueError(
@@ -582,7 +587,8 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             else opt.dropout,
             embeddings,
             opt.reuse_copy_attn,
-            opt.copy_attn_type)
+            opt.copy_attn_type,
+            opt.user_hidden_size)
 
     def init_state(self, memory_bank, key_phrases, encoder_final):
         """Initialize decoder state with last state of the encoder."""
@@ -744,8 +750,9 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)   
 
+              key_phrase_attn_input = self.user_decoder_state_layer(torch.cat((rnn_output, user_vector), 1))
               decoder_output2, key_phrase_attn = self.key_phrase_attn(
-                  rnn_output,
+                  key_phrase_attn_input,
                   key_phrases_vectors.transpose(0, 1),
                   memory_lengths=key_phrases_lens)
 

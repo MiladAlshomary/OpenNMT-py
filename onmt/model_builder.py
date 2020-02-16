@@ -173,10 +173,6 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         key_phrases_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.key_phrases_feat_size, model_opt.dec_rnn_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
-    # user_decoder_state_encoder  = nn.Sequential(
-    #     nn.Linear(model_opt.dec_rnn_size + model_opt.user_hidden_size, model_opt.model.key_phrases_feat_size)
-    # )
-
     # Build NMTModel(= encoder + decoder).
     if gpu and gpu_id is not None:
         device = torch.device("cuda", gpu_id)
