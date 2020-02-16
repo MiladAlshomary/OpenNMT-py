@@ -538,11 +538,17 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
 
 
         #setup attention on the context_feature vector
-        self.kye_phrase_attn = GlobalAttention(
+        self.key_phrase_attn = GlobalAttention(
             hidden_size,
             coverage=False, # coverage not yet implemented for visual attention
             attn_type=attn_type, 
             attn_func=attn_func
+        )
+
+        #setup a merging layer for both attention...
+        self.decoder_output_layer = nn.Sequential(
+            nn.Linear(hidden_size * 2, hidden_size),
+            nn.Tanh()
         )
 
         if copy_attn and not reuse_copy_attn:
@@ -636,7 +642,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         key_phrases_vectors = key_phrases_vectors.transpose(0,1)
 
 
-        dec_state, dec_outs, context_outs, attns = self._run_forward_pass(
+        dec_state, dec_outs, key_phrase_outputs, attns = self._run_forward_pass(
             tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=memory_lengths)
 
         # Update the state with the result.
@@ -661,7 +667,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
                 if type(attns[k]) == list:
                     attns[k] = torch.stack(attns[k])
         
-        return dec_outs, context_outs, attns
+        return dec_outs, key_phrase_outputs, attns
 
     def update_dropout(self, dropout):
         self.dropout.p = dropout
@@ -709,14 +715,16 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
       # END Additional args check.
 
       dec_outs = []
-      context_outs=[]
+      key_phrase_outputs=[]
       attns = {}
       if self.attn is not None:
-          attns["std"] = []
+        attns["std"] = []
+      if self.key_phrase_attn is not None:
+        attns["std_key_phrases"] = []
       if self.copy_attn is not None or self._reuse_copy_attn:
-          attns["copy"] = []
+        attns["copy"] = []
       if self._coverage:
-          attns["coverage"] = []
+        attns["coverage"] = []
 
       emb = self.embeddings(tgt)
       assert emb.dim() == 3  # len x batch x embedding_dim
@@ -731,17 +739,20 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           decoder_input = torch.cat([emb_t.squeeze(0), input_feed], 1)
           rnn_output, dec_state = self.rnn(decoder_input, dec_state)
           if self.attentional:
-              decoder_output, p_attn = self.attn(
+              decoder_output1, p_attn = self.attn(
                   rnn_output,
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)   
 
-              attn_output_context, kye_phrase_attn = self.kye_phrase_attn(
-              rnn_output,
-              key_phrases_vectors.transpose(0, 1),
-              memory_lengths=key_phrases_lens)
+              decoder_output2, key_phrase_attn = self.key_phrase_attn(
+                  rnn_output,
+                  key_phrases_vectors.transpose(0, 1),
+                  memory_lengths=key_phrases_lens)
+
+              decoder_output = self.decoder_output_layerer(torch.cat((decoder_output1, decoder_output2), 1))
 
               attns["std"].append(p_attn)
+              attns["std_key_phrases"].append(key_phrase_attn)
           else:
               decoder_output = rnn_output
           
@@ -752,12 +763,11 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   decoder_input, rnn_output, decoder_output
               )
           decoder_output = self.dropout(decoder_output)
-          attn_output_context = self.dropout(attn_output_context)
 
           input_feed = decoder_output
 
           dec_outs += [decoder_output]
-          context_outs += [attn_output_context]
+          key_phrase_outputs += [decoder_output1]
 
           # Update the coverage attention.
           if self._coverage:
@@ -771,7 +781,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           elif self._reuse_copy_attn:
               attns["copy"] = attns["std"]
 
-      return dec_state, dec_outs, context_outs, attns
+      return dec_state, dec_outs, key_phrase_outputs, attns
 
   def _build_rnn(self, rnn_type, input_size,
                  hidden_size, num_layers, dropout):
