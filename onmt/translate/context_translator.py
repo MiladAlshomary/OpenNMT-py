@@ -8,6 +8,7 @@ import time
 from itertools import count
 
 import torch
+import onmt
 
 import onmt.model_builder
 import onmt.translate.beam
@@ -287,6 +288,7 @@ class ContextTranslator(object):
             self,
             src,
             context_feats,
+            key_phrase_feats,
             tgt=None,
             src_dir=None,
             batch_size=None,
@@ -352,7 +354,7 @@ class ContextTranslator(object):
 
         for idxs, batch in enumerate(data_iter):
             batch_data = self.translate_batch(
-                batch, context_feats, data.src_vocabs, attn_debug, tags=[]
+                batch, context_feats, key_phrase_feats, data.src_vocabs, attn_debug, tags=[]
             )
             translations = xlation_builder.from_batch(batch_data)
 
@@ -425,115 +427,17 @@ class ContextTranslator(object):
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
         return all_scores, all_predictions
 
-    def _translate_random_sampling(
-            self,
-            batch,
-            src_vocabs,
-            max_length,
-            min_length=0,
-            sampling_temp=1.0,
-            keep_topk=-1,
-            return_attention=False):
-        """Alternative to beam search. Do random sampling at each step."""
-
-        assert self.beam_size == 1
-
-        # TODO: support these blacklisted features.
-        assert self.block_ngram_repeat == 0
-
-        batch_size = batch.batch_size
-
-        # Encoder forward.
-        src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
-        self.model.decoder.init_state(src, memory_bank, enc_states)
-
-        use_src_map = self.copy_attn
-
-        results = {
-            "predictions": None,
-            "scores": None,
-            "attention": None,
-            "batch": batch,
-            "gold_score": self._gold_score(
-                batch, memory_bank, src_lengths, src_vocabs, use_src_map,
-                enc_states, batch_size, src)}
-
-        memory_lengths = src_lengths
-        src_map = batch.src_map if use_src_map else None
-
-        if isinstance(memory_bank, tuple):
-            mb_device = memory_bank[0].device
-        else:
-            mb_device = memory_bank.device
-
-        random_sampler = RandomSampling(
-            self._tgt_pad_idx, self._tgt_bos_idx, self._tgt_eos_idx,
-            batch_size, mb_device, min_length, self.block_ngram_repeat,
-            self._exclusion_idxs, return_attention, self.max_length,
-            sampling_temp, keep_topk, memory_lengths)
-
-        for step in range(max_length):
-            # Shape: (1, B, 1)
-            decoder_input = random_sampler.alive_seq[:, -1].view(1, -1, 1)
-
-            log_probs, attn = self._decode_and_generate(
-                decoder_input,
-                memory_bank,
-                batch,
-                src_vocabs,
-                memory_lengths=memory_lengths,
-                src_map=src_map,
-                step=step,
-                batch_offset=random_sampler.select_indices
-            )
-
-            random_sampler.advance(log_probs, attn)
-            any_batch_is_finished = random_sampler.is_finished.any()
-            if any_batch_is_finished:
-                random_sampler.update_finished()
-                if random_sampler.done:
-                    break
-
-            if any_batch_is_finished:
-                select_indices = random_sampler.select_indices
-
-                # Reorder states.
-                if isinstance(memory_bank, tuple):
-                    memory_bank = tuple(x.index_select(1, select_indices)
-                                        for x in memory_bank)
-                else:
-                    memory_bank = memory_bank.index_select(1, select_indices)
-
-                memory_lengths = memory_lengths.index_select(0, select_indices)
-
-                if src_map is not None:
-                    src_map = src_map.index_select(1, select_indices)
-
-                self.model.decoder.map_state(
-                    lambda state, dim: state.index_select(dim, select_indices))
-
-        results["scores"] = random_sampler.scores
-        results["predictions"] = random_sampler.predictions
-        results["attention"] = random_sampler.attention
-        return results
-
-    def translate_batch(self, batch, context_feats, src_vocabs, attn_debug, tags):
+    def translate_batch(self, batch, context_feats, key_phrase_feats, src_vocabs, attn_debug, tags):
         """Translate a batch of sentences."""
         with torch.no_grad():
             if self.beam_size == 1:
-                return self._translate_random_sampling(
-                    batch,
-                    context_feats,
-                    src_vocabs,
-                    self.max_length,
-                    min_length=self.min_length,
-                    sampling_temp=self.random_sampling_temp,
-                    keep_topk=self.sample_from_topk,
-                    return_attention=attn_debug or self.replace_unk)
+                print('not implemented ....')
+                exit()
             else:
                 return self._translate_batch(
                     batch,
                     context_feats,
+                    key_phrase_feats,
                     src_vocabs,
                     self.max_length,
                     min_length=self.min_length,
@@ -618,6 +522,7 @@ class ContextTranslator(object):
             self,
             batch,
             context_feats,
+            key_phrase_feats,
             src_vocabs,
             max_length,
             min_length=0,
@@ -634,24 +539,38 @@ class ContextTranslator(object):
 
         # Encode context features...
         idxs  = batch.indices.cpu().data.numpy()
-        context_feats = torch.from_numpy( context_feats[idxs] )
-        context_feats = torch.autograd.Variable(context_feats, requires_grad=False)
-        if next(self.model.parameters()).is_cuda:
-            context_feats = context_feats.cuda()
-        else:
-            context_feats = context_feats.cpu()
+        user_feats = torch.from_numpy( context_feats[idxs] )
+        user_feats = torch.autograd.Variable(user_feats, requires_grad=False)
 
-        # project image features
-        feats_proj = self.model.context_encoder( context_feats )
+        batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
+
+        if next(self.model.parameters()).is_cuda:
+            user_feats = user_feats.cuda()
+            batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+            batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
+        else:
+            user_feats = user_feats.cpu()
+            batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+            batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
+
+
+        if self.model.key_phrases_encoder is not None:
+            # project/transform local image features into the expected structure/shape
+            key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats )
+        else:
+            key_phrases_feats_proj = key_phrases_feats
+
+        user_feats_proj = self.user_encoder(user_feats)
+
 
         # (1) Run the encoder on the src.
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
 
         # combine encoder final hidden state with image features
-        enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
+        #enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
         # initialise decoder
 
-        self.model.decoder.init_state(src, memory_bank, enc_init_state)
+        self.model.decoder.init_state(src, memory_bank, enc_states, key_phrases_feats_proj)
 
         results = {
             "predictions": None,
