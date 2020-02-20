@@ -522,7 +522,7 @@ class ContextTranslator(object):
             self,
             batch,
             context_feats,
-            key_phrase_feats,
+            key_phrases_feats,
             src_vocabs,
             max_length,
             min_length=0,
