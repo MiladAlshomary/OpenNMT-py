@@ -570,7 +570,7 @@ class ContextTranslator(object):
         #enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
         # initialise decoder
 
-        self.model.decoder.init_state(src, memory_bank, enc_states, key_phrases_feats_proj)
+        self.model.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_states)
 
         results = {
             "predictions": None,
