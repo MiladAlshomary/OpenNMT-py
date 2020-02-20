@@ -549,8 +549,6 @@ class ContextTranslator(object):
 
         batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
 
-        print(batch_key_phrases_feats.shape)
-        
         if next(self.model.parameters()).is_cuda:
             user_feats = user_feats.cuda()
             batch_key_phrases_feats = batch_key_phrases_feats.cuda()
@@ -605,7 +603,7 @@ class ContextTranslator(object):
 
 
         user_feats_proj = tile(user_feats_proj, beam_size, dim=0)
-        key_phrases_feats_proj = tile(key_phrases_feats_proj, beam_size, dim=1)
+        key_phrases_feats_proj = tile(key_phrases_feats_proj, beam_size, dim=0)
         batch_key_phrases_lens = tile(batch_key_phrases_lens, beam_size)
 
         # (0) pt 2, prep the beam object
