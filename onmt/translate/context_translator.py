@@ -560,7 +560,7 @@ class ContextTranslator(object):
         else:
             key_phrases_feats_proj = key_phrases_feats
 
-        user_feats_proj = self.user_encoder(user_feats)
+        user_feats_proj = self.model.user_encoder(user_feats)
 
 
         # (1) Run the encoder on the src.
