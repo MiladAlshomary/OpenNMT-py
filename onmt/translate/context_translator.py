@@ -486,7 +486,7 @@ class ContextTranslator(object):
         # in case of inference tgt_len = 1, batch = beam times batch_size
         # in case of Gold Scoring tgt_len = actual length, batch = 1 batch
         dec_out, key_phrase_outputs, dec_attn = self.model.decoder(
-            decoder_in, memory_bank, key_phrases_feats_proj, key_phrases_lens, key_phrases_feats_proj, memory_lengths=memory_lengths, step=step
+            decoder_in, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=memory_lengths, step=step
         )
 
         # Generator forward.
