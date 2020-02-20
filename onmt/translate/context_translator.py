@@ -549,6 +549,8 @@ class ContextTranslator(object):
 
         batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
 
+        print(batch_key_phrases_feats.shape)
+        
         if next(self.model.parameters()).is_cuda:
             user_feats = user_feats.cuda()
             batch_key_phrases_feats = batch_key_phrases_feats.cuda()
