@@ -660,6 +660,10 @@ class ContextTranslator(object):
 
                 memory_lengths = memory_lengths.index_select(0, select_indices)
 
+                user_feats_proj        = user_feats_proj.index_select(0, select_indices)
+                key_phrases_feats_proj = key_phrases_feats_proj.index_select(0, select_indices)
+                batch_key_phrases_lens = batch_key_phrases_lens.index_select(0, select_indices)
+
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
 
