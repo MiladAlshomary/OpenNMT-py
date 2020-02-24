@@ -166,7 +166,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     key_phrases_encoder = None
     if model_opt.project_user:
         # An encoder to encode the contextual features
-        user_encoder = onmt.models.ContextualFeaturesProjector(model_opt.dec_layers, model_opt.user_feat_size, model_opt.user_hidden_size,
+        user_encoder = onmt.models.ContextualFeaturesProjector(1, model_opt.user_feat_size, model_opt.user_hidden_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     if model_opt.project_key_phrases:
