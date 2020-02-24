@@ -170,7 +170,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     if model_opt.project_key_phrases:
-        key_phrases_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.key_phrases_feat_size, model_opt.dec_rnn_size,
+        key_phrases_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.key_phrases_feat_size, model_opt.num_key_phrases, model_opt.dec_rnn_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     # Build NMTModel(= encoder + decoder).

@@ -65,7 +65,7 @@ class ContextLocalFeaturesProjector(nn.Module):
     """
         Reshape local image features.
     """
-    def __init__(self, num_layers, nfeats, outdim, dropout,
+    def __init__(self, num_layers, nfeats, seq_len, outdim, dropout,
             use_nonlinear_projection):
         """
         Args:
@@ -85,7 +85,7 @@ class ContextLocalFeaturesProjector(nn.Module):
         
         layers = []
         # # reshape input
-        layers.append(View(-1, 5, nfeats) )
+        layers.append(View(-1, seq_len, nfeats) )
         # linear projection from feats to rnn size
         layers.append( nn.Linear(nfeats, outdim*num_layers) )
         if use_nonlinear_projection:
@@ -270,7 +270,10 @@ class NMTSrcContextModel(nn.Module):
         else:
             key_phrases_feats_proj = key_phrases_feats
 
-        user_feats_proj = self.user_encoder(user_feats)
+        if self.user_encoder is not None:
+            user_feats_proj = self.user_encoder(user_feats)
+        else:
+            user_feats_proj = user_feats
 
         tgt = tgt[:-1]  # exclude last target from inputs
         
