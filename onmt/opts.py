@@ -98,6 +98,8 @@ def model_opts(parser):
       help='Pass key phrases vectors through a FF')
     group.add('--key_phrases_feat_size', '-key_phrases_feat_size', type=int, default=48,
               help='Number of features for the user feature vector.')
+    group.add('--num_key_phrases', '-num_key_phrases', type=int, default=10,
+              help='Number of key_phrases to consider')
     
     group.add('--context_dropout', '-context_dropout', type=float, default=0.0,
       help='Dropout applied on the context encoder.')

@@ -134,7 +134,8 @@ class ContextTranslator(object):
             out_file=None,
             report_score=True,
             logger=None,
-            seed=-1):
+            seed=-1,
+            num_key_phrases=10):
         self.model = model
         self.fields = fields
         tgt_field = dict(self.fields)["tgt"].base_field
@@ -205,6 +206,8 @@ class ContextTranslator(object):
 
         set_random_seed(seed, self._use_cuda)
 
+        self.num_key_phrases = num_key_phrases
+
     @classmethod
     def from_opt(
             cls,
@@ -265,7 +268,8 @@ class ContextTranslator(object):
             constraint_file = opt.constraint_file,
             report_score=report_score,
             logger=logger,
-            seed=opt.seed)
+            seed=opt.seed,
+            num_key_phrases=model_opt.num_key_phrases)
 
     def _log(self, msg):
         if self.logger:
@@ -547,7 +551,7 @@ class ContextTranslator(object):
         user_feats = torch.from_numpy( context_feats[idxs] )
         user_feats = torch.autograd.Variable(user_feats, requires_grad=False)
 
-        batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs])
+        batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
 
         if next(self.model.parameters()).is_cuda:
             user_feats = user_feats.cuda()
