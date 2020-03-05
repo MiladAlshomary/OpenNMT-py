@@ -71,7 +71,8 @@ def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
                            earlystopper=earlystopper,
                            dropout=dropout,
                            dropout_steps=dropout_steps,
-                           num_key_phrases=opt.num_key_phrases)
+                           num_key_phrases=opt.num_key_phrases,
+                           context_model= opt.multimodal_model_type =='doubly-attn')
     return trainer
 
 
@@ -108,7 +109,7 @@ class Trainer(object):
                  n_gpu=1, gpu_rank=1,
                  gpu_verbose_level=0, report_manager=None, model_saver=None,
                  average_decay=0, average_every=1, model_dtype='fp32',
-                 earlystopper=None, dropout=[0.3], dropout_steps=[0], num_key_phrases=10):
+                 earlystopper=None, dropout=[0.3], dropout_steps=[0], num_key_phrases=10, context_model=False):
         # Basic attributes.
         self.model = model
         self.train_loss = train_loss
@@ -133,6 +134,7 @@ class Trainer(object):
         self.dropout = dropout
         self.dropout_steps = dropout_steps
         self.num_key_phrases = num_key_phrases
+        self.context_model = context_model
 
         for i in range(len(self.accum_count_l)):
             assert self.accum_count_l[i] > 0
@@ -245,8 +247,8 @@ class Trainer(object):
                                     (normalization))
 
             self._gradient_accumulation(
-                batches, training_profiles, training_key_phrases, normalization, total_stats,
-                report_stats)
+                batches, normalization, total_stats,
+                report_stats, training_profiles, training_key_phrases)
 
             if self.average_decay > 0 and i % self.average_every == 0:
                 self._update_average(step)
@@ -290,7 +292,7 @@ class Trainer(object):
             self.model_saver.save(step, moving_average=self.moving_average)
         return total_stats
 
-    def validate(self, valid_iter, key_phrases_feats, context_feats=None, moving_average=None):
+    def validate(self, valid_iter, key_phrases_feats=None, context_feats=None, moving_average=None):
         """ Validate model.
             valid_iter: validate data iterator
         Returns:
@@ -317,23 +319,35 @@ class Trainer(object):
 
                 # extract indices for all entries in the mini-batch
                 idxs  = batch.indices.cpu().data.numpy()
-                batch_context_feats = torch.from_numpy(context_feats[idxs])
-                batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
 
-                batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
-
-                if next(valid_model.parameters()).is_cuda:
-                    batch_context_feats = batch_context_feats.cuda()
-                    batch_key_phrases_feats = batch_key_phrases_feats.cuda()
-                    batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
+                if key_phrases_feats is not None:
+                    batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
+                    
+                    if next(valid_model.parameters()).is_cuda:
+                        batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+                        batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
+                    else:
+                        batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+                        batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
                 else:
-                    batch_context_feats = batch_context_feats.cpu()
-                    batch_key_phrases_feats = batch_key_phrases_feats.cpu()
-                    batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
+                    batch_key_phrases_feats = None
+                    batch_key_phrases_lens  = None
+
+                if context_feats is not None:
+                    batch_context_feats = torch.from_numpy(context_feats[idxs])
+                    batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+                    if next(valid_model.parameters()).is_cuda:
+                        batch_context_feats = batch_context_feats.cuda()
+                    else:
+                        batch_context_feats = batch_context_feats.cpu()
+                else:
+                    batch_context_feats=None
 
                 # F-prop through the model.
-
-                outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
+                if self.context_model:
+                    outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
+                else:
+                    outputs, attns = valid_model(src, tgt, src_lengths)
 
                 # Compute loss.
                 _, batch_stats = self.valid_loss(batch, outputs, attns)
@@ -349,8 +363,8 @@ class Trainer(object):
 
         return stats
 
-    def _gradient_accumulation(self, true_batches, user_feats, key_phrases_feats, normalization, total_stats,
-                               report_stats):
+    def _gradient_accumulation(self, true_batches, normalization, total_stats,
+                               report_stats, user_feats=None, key_phrases_feats=None):
         if self.accum_count > 1:
             self.optim.zero_grad()
 
@@ -371,20 +385,22 @@ class Trainer(object):
 
             idxs = batch.indices.cpu().data.numpy()
 
-            # load image features for this minibatch into a pytorch Variable
-            batch_user_feats = torch.from_numpy( user_feats[idxs] )
-            batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
+            if self.context_model:
+                # load image features for this minibatch into a pytorch Variable
+                batch_user_feats = torch.from_numpy( user_feats[idxs] )
+                batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
 
-            batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
-            
-            if next(self.model.parameters()).is_cuda:
-                batch_user_feats = batch_user_feats.cuda()
-                batch_key_phrases_feats = batch_key_phrases_feats.cuda()
-                batch_key_phrases_lens = batch_key_phrases_lens.cuda()
-            else:
-                batch_user_feats = batch_user_feats.cpu()
-                batch_key_phrases_feats = batch_key_phrases_feats.cpu()
-                batch_key_phrases_lens = batch_key_phrases_lens.cpu()
+                batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
+                
+                if next(self.model.parameters()).is_cuda:
+                    batch_user_feats = batch_user_feats.cuda()
+                    batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+                    batch_key_phrases_lens = batch_key_phrases_lens.cuda()
+                else:
+                    batch_user_feats = batch_user_feats.cpu()
+                    batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+                    batch_key_phrases_lens = batch_key_phrases_lens.cpu()
+
 
             bptt = False
             for j in range(0, target_size-1, trunc_size):
@@ -395,7 +411,11 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
 
-                outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, batch_key_phrases_feats, batch_key_phrases_lens, bptt=bptt)
+                if self.context_model:
+                    outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, batch_key_phrases_feats, batch_key_phrases_lens, bptt=bptt)
+                else:
+                    outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt)
+
                 bptt = True
 
                 # 3. Compute loss.
