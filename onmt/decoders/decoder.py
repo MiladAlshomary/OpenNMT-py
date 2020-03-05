@@ -750,13 +750,13 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)   
 
-              key_phrase_attn_input = rnn_output #self.user_decoder_state_layer(torch.cat((rnn_output, user_vector), 1))
+              key_phrase_attn_input = self.user_decoder_state_layer(torch.cat((rnn_output, user_vector), 1))
               decoder_output2, key_phrase_attn = self.key_phrase_attn(
                   key_phrase_attn_input,
                   key_phrases_vectors.transpose(0, 1),
                   memory_lengths=key_phrases_lens)
 
-              decoder_output = decoder_output2 #self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
+              decoder_output = self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
 
               attns["std"].append(p_attn)
               attns["std_key_phrases"].append(key_phrase_attn)

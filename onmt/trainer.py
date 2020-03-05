@@ -320,29 +320,21 @@ class Trainer(object):
                 # extract indices for all entries in the mini-batch
                 idxs  = batch.indices.cpu().data.numpy()
 
-                if key_phrases_feats is not None:
+                if self.context_model:
+
+                    batch_context_feats = torch.from_numpy(context_feats[idxs])
+                    batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)    
                     batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
-                    
+
                     if next(valid_model.parameters()).is_cuda:
                         batch_key_phrases_feats = batch_key_phrases_feats.cuda()
                         batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
+                        batch_context_feats = batch_context_feats.cuda()
                     else:
                         batch_key_phrases_feats = batch_key_phrases_feats.cpu()
                         batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
-                else:
-                    batch_key_phrases_feats = None
-                    batch_key_phrases_lens  = None
-
-                if context_feats is not None:
-                    batch_context_feats = torch.from_numpy(context_feats[idxs])
-                    batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
-                    if next(valid_model.parameters()).is_cuda:
-                        batch_context_feats = batch_context_feats.cuda()
-                    else:
                         batch_context_feats = batch_context_feats.cpu()
-                else:
-                    batch_context_feats=None
-
+                
                 # F-prop through the model.
                 if self.context_model:
                     outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
