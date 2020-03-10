@@ -504,6 +504,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.embeddings = embeddings
+        self.user_input_size = user_hidden_size
         self.dropout = nn.Dropout(dropout)
 
         # Decoder state
