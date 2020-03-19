@@ -11,6 +11,7 @@ from onmt.translate import context_translator
 
 import onmt.opts as opts
 import pickle
+import numpy as np
 from onmt.utils.parse import ArgumentParser
 
 
