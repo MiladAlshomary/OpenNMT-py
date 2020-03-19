@@ -777,7 +777,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           input_feed = decoder_output
 
           dec_outs += [decoder_output]
-          key_phrase_outputs += [decoder_output1]
+          key_phrase_outputs += [decoder_output2]
 
           # Update the coverage attention.
           if self._coverage:
