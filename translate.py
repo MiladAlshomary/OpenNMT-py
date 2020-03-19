@@ -7,8 +7,10 @@ from itertools import repeat
 from onmt.utils.logging import init_logger
 from onmt.utils.misc import split_corpus
 from onmt.translate.translator import build_translator
+from onmt.translate import context_translator
 
 import onmt.opts as opts
+import pickle
 from onmt.utils.parse import ArgumentParser
 
 
@@ -16,7 +18,11 @@ def main(opt):
     ArgumentParser.validate_translate_opts(opt)
     logger = init_logger(opt.log_file)
 
-    translator = build_translator(opt, report_score=True)
+    if opt.context_translator:
+        translator = context_translator.build_translator(opt, report_score=True)
+    else:
+        translator = build_translator(opt, report_score=True)
+
     src_shards = split_corpus(opt.src, opt.shard_size)
     tgt_shards = split_corpus(opt.tgt, opt.shard_size) \
         if opt.tgt is not None else repeat(None)
@@ -24,14 +30,32 @@ def main(opt):
 
     for i, (src_shard, tgt_shard) in enumerate(shard_pairs):
         logger.info("Translating shard %d." % i)
-        translator.translate(
-            src=src_shard,
-            tgt=tgt_shard,
-            src_dir=opt.src_dir,
-            batch_size=opt.batch_size,
-            batch_type=opt.batch_type,
-            attn_debug=opt.attn_debug
+
+        if opt.context_translator:
+
+            #load keyphrases and user vectors
+            user_profiles = pickle.load(open(opt.user_vectors, 'rb'))
+            key_phrases = np.array(pickle.load(open(opt.key_phrases, 'rb')))
+            
+            translator.translate(
+                src=src_shard,
+                tgt=tgt_shard,
+                context_feats=user_profiles,
+                key_phrase_feats=key_phrases,
+                src_dir=opt.src_dir,
+                batch_size=opt.batch_size,
+                batch_type=opt.batch_type,
+                attn_debug=opt.attn_debug
             )
+        else:    
+            translator.translate(
+                src=src_shard,
+                tgt=tgt_shard,
+                src_dir=opt.src_dir,
+                batch_size=opt.batch_size,
+                batch_type=opt.batch_type,
+                attn_debug=opt.attn_debug
+                )
 
 
 def _get_parser():
