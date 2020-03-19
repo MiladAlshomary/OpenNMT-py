@@ -323,7 +323,8 @@ class Trainer(object):
                 if self.context_model:
 
                     batch_context_feats = torch.from_numpy(context_feats[idxs])
-                    batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)    
+                    batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
+
                     batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
 
                     if next(valid_model.parameters()).is_cuda:
