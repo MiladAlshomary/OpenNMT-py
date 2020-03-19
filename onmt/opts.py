@@ -629,9 +629,6 @@ def translate_opts(parser):
     group.add('--key_phrases', '-key_phrases',
               help="Path to key_phrases needed only for context translation")
 
-    group.add('--src', '-src', required=True,
-              help="Source sequence to decode (one line per "
-                   "sequence)")
     group.add('--constraint_file', '-constraint_file', required=False,
               help="constraint file for content selection")
     group.add('--context_translator', '-context_translator', action='store_true',
