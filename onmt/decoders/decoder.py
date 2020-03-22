@@ -746,19 +746,19 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           decoder_input = torch.cat([emb_t.squeeze(0), input_feed, user_vector], 1)
           rnn_output, dec_state = self.rnn(decoder_input, dec_state)
           if self.attentional:
-              # decoder_output1, p_attn = self.attn(
-              #     rnn_output,
-              #     memory_bank.transpose(0, 1),
-              #     memory_lengths=memory_lengths)   
+              decoder_output1, p_attn = self.attn(
+                  rnn_output,
+                  memory_bank.transpose(0, 1),
+                  memory_lengths=memory_lengths)   
 
               #key_phrase_attn_input = self.user_decoder_state_layer(torch.cat((rnn_output, user_vector), 1))
               
-              decoder_output2, key_phrase_attn = self.key_phrase_attn(
-                  rnn_output,
-                  key_phrases_vectors.transpose(0, 1),
-                  memory_lengths=key_phrases_lens)
+              # decoder_output2, key_phrase_attn = self.key_phrase_attn(
+              #     rnn_output,
+              #     key_phrases_vectors.transpose(0, 1),
+              #     memory_lengths=key_phrases_lens)
 
-              decoder_output = decoder_output2 #self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
+              decoder_output = decoder_output1 #self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
 
               #attns["std"].append(p_attn)
               attns["std"].append(key_phrase_attn)
@@ -777,7 +777,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           input_feed = decoder_output
 
           dec_outs += [decoder_output]
-          key_phrase_outputs += [decoder_output2]
+          key_phrase_outputs += [decoder_output1]
 
           # Update the coverage attention.
           if self._coverage:
