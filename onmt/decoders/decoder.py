@@ -760,9 +760,8 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
 
               decoder_output = decoder_output1 #self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
 
-              #attns["std"].append(p_attn)
-              attns["std"].append(key_phrase_attn)
-              attns["std_key_phrases"].append(key_phrase_attn)
+              attns["std"].append(p_attn)
+              attns["std_key_phrases"].append(p_attn)
           else:
               decoder_output = rnn_output
           
