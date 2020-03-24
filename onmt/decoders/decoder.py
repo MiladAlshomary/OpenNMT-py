@@ -537,26 +537,6 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
                 attn_type=attn_type, attn_func=attn_func
             )
 
-
-        #setup attention on the context_feature vector
-        self.key_phrase_attn = GlobalAttention(
-            hidden_size,
-            coverage=False, # coverage not yet implemented for visual attention
-            attn_type=attn_type, 
-            attn_func=attn_func
-        )
-
-        #setup a merging layer for both attention...
-        self.decoder_output_layer = nn.Sequential(
-            nn.Linear(hidden_size * 2, hidden_size),
-            nn.Tanh()
-        )
-
-        self.user_decoder_state_layer = nn.Sequential(
-            nn.Linear(hidden_size + user_hidden_size, hidden_size),
-            nn.Tanh()
-        )
-
         if copy_attn and not reuse_copy_attn:
             if copy_attn_type == "none" or copy_attn_type is None:
                 raise ValueError(
@@ -591,7 +571,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
             opt.copy_attn_type,
             opt.user_hidden_size)
 
-    def init_state(self, memory_bank, key_phrases, encoder_final):
+    def init_state(self, memory_bank, encoder_final):
         """Initialize decoder state with last state of the encoder."""
         def _fix_enc_hidden(hidden):
             # The encoder hidden is  (layers*directions) x batch x dim.
@@ -612,8 +592,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         h_size = (batch_size, self.hidden_size)
         self.state["input_feed"] = \
             self.state["hidden"][0].data.new(*h_size).zero_().unsqueeze(0)
-        self.state["input_feed_context"] = Variable(key_phrases.data.new(*h_size).zero_(),
-                                       requires_grad=False).unsqueeze(0)
+
         self.state["coverage"] = None
 
     def map_state(self, fn):
@@ -626,7 +605,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
         self.state["hidden"] = tuple(h.detach() for h in self.state["hidden"])
         self.state["input_feed"] = self.state["input_feed"].detach()
 
-    def forward(self, tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=None, step=None):
+    def forward(self, tgt, memory_bank, user_vector, memory_lengths=None, step=None):
         """
         Args:
             tgt (LongTensor): sequences of padded tokens
@@ -645,12 +624,8 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
               ``(tgt_len, batch, src_len)``.
         """
 
-        # transpose image feats from (batch x len x feats) to (len x batch x feats)
-        key_phrases_vectors = key_phrases_vectors.transpose(0,1)
-
-
-        dec_state, dec_outs, key_phrase_outputs, attns = self._run_forward_pass(
-            tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=memory_lengths)
+        dec_state, dec_outs, attns = self._run_forward_pass(
+            tgt, memory_bank, user_vector, memory_lengths=memory_lengths)
 
         # Update the state with the result.
         if not isinstance(dec_state, tuple):
@@ -674,7 +649,7 @@ class RNNDecoderBaseDoublyAttentive(RNNDecoderBase):
                 if type(attns[k]) == list:
                     attns[k] = torch.stack(attns[k])
         
-        return dec_outs, key_phrase_outputs, attns
+        return dec_outs, attns
 
     def update_dropout(self, dropout):
         self.dropout.p = dropout
@@ -709,7 +684,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           G --> H
     """
 
-  def _run_forward_pass(self, tgt, memory_bank, key_phrases_vectors, key_phrases_lens, user_vector, memory_lengths=None):
+  def _run_forward_pass(self, tgt, memory_bank, user_vector, memory_lengths=None):
       """
       See StdRNNDecoder._run_forward_pass() for description
       of arguments and return values.
@@ -726,8 +701,6 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
       attns = {}
       if self.attn is not None:
         attns["std"] = []
-      if self.key_phrase_attn is not None:
-        attns["std_key_phrases"] = []
       if self.copy_attn is not None or self._reuse_copy_attn:
         attns["copy"] = []
       if self._coverage:
@@ -746,19 +719,10 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           decoder_input = torch.cat([emb_t.squeeze(0), input_feed, user_vector], 1)
           rnn_output, dec_state = self.rnn(decoder_input, dec_state)
           if self.attentional:
-              decoder_output1, p_attn = self.attn(
+              decoder_output, p_attn = self.attn(
                   rnn_output,
                   memory_bank.transpose(0, 1),
                   memory_lengths=memory_lengths)   
-
-              #key_phrase_attn_input = self.user_decoder_state_layer(torch.cat((rnn_output, user_vector), 1))
-              
-              # decoder_output2, key_phrase_attn = self.key_phrase_attn(
-              #     rnn_output,
-              #     key_phrases_vectors.transpose(0, 1),
-              #     memory_lengths=key_phrases_lens)
-
-              decoder_output = decoder_output1 #self.decoder_output_layer(torch.cat((decoder_output1, decoder_output2), 1))
 
               attns["std"].append(p_attn)
               attns["std_key_phrases"].append(p_attn)
@@ -776,7 +740,6 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           input_feed = decoder_output
 
           dec_outs += [decoder_output]
-          key_phrase_outputs += [decoder_output1]
 
           # Update the coverage attention.
           if self._coverage:
@@ -790,7 +753,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
           elif self._reuse_copy_attn:
               attns["copy"] = attns["std"]
 
-      return dec_state, dec_outs, key_phrase_outputs, attns
+      return dec_state, dec_outs, attns
 
   def _build_rnn(self, rnn_type, input_size,
                  hidden_size, num_layers, dropout):

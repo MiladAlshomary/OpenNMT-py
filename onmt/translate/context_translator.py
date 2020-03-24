@@ -293,7 +293,6 @@ class ContextTranslator(object):
             self,
             src,
             context_feats,
-            key_phrase_feats,
             tgt=None,
             src_dir=None,
             batch_size=None,
@@ -359,7 +358,7 @@ class ContextTranslator(object):
 
         for idxs, batch in enumerate(data_iter):
             batch_data = self.translate_batch(
-                batch, context_feats, key_phrase_feats, data.src_vocabs, attn_debug, tags=[]
+                batch, context_feats, data.src_vocabs, attn_debug, tags=[]
             )
             translations = xlation_builder.from_batch(batch_data)
 
@@ -432,7 +431,7 @@ class ContextTranslator(object):
                       codecs.open(self.dump_beam, 'w', 'utf-8'))
         return all_scores, all_predictions
 
-    def translate_batch(self, batch, context_feats, key_phrase_feats, src_vocabs, attn_debug, tags):
+    def translate_batch(self, batch, context_feats, src_vocabs, attn_debug, tags):
         """Translate a batch of sentences."""
         with torch.no_grad():
             if self.beam_size == 1:
@@ -442,7 +441,6 @@ class ContextTranslator(object):
                 return self._translate_batch(
                     batch,
                     context_feats,
-                    key_phrase_feats,
                     src_vocabs,
                     self.max_length,
                     min_length=self.min_length,
@@ -471,8 +469,6 @@ class ContextTranslator(object):
         memory_bank,
         batch,
         user_feats_proj,
-        key_phrases_feats_proj,
-        key_phrases_lens,
         src_vocabs,
         memory_lengths,
         src_map=None,
@@ -490,8 +486,8 @@ class ContextTranslator(object):
         # and [src_len, batch, hidden] as memory_bank
         # in case of inference tgt_len = 1, batch = beam times batch_size
         # in case of Gold Scoring tgt_len = actual length, batch = 1 batch
-        dec_out, key_phrase_outputs, dec_attn = self.model.decoder(
-            decoder_in, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=memory_lengths, step=step
+        dec_out, dec_attn = self.model.decoder(
+            decoder_in, memory_bank, user_feats_proj, memory_lengths=memory_lengths, step=step
         )
 
         # Generator forward.
@@ -532,7 +528,6 @@ class ContextTranslator(object):
             self,
             batch,
             context_feats,
-            key_phrases_feats,
             src_vocabs,
             max_length,
             min_length=0,
@@ -552,25 +547,18 @@ class ContextTranslator(object):
         user_feats = torch.from_numpy( context_feats[idxs] )
         user_feats = torch.autograd.Variable(user_feats, requires_grad=False)
 
-        batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
 
         if next(self.model.parameters()).is_cuda:
             user_feats = user_feats.cuda()
-            batch_key_phrases_feats = batch_key_phrases_feats.cuda()
-            batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
         else:
             user_feats = user_feats.cpu()
-            batch_key_phrases_feats = batch_key_phrases_feats.cpu()
-            batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
 
 
-        if self.model.key_phrases_encoder is not None:
-            # project/transform local image features into the expected structure/shape
-            key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats )
+        
+        if self.model.user_encoder:
+            user_feats_proj = self.model.user_encoder(user_feats)
         else:
-            key_phrases_feats_proj = key_phrases_feats
-
-        user_feats_proj = self.model.user_encoder(user_feats)
+            user_feats_proj = user_feats
 
 
         # (1) Run the encoder on the src.
@@ -580,7 +568,7 @@ class ContextTranslator(object):
         #enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
         # initialise decoder
 
-        self.model.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_states)
+        self.model.decoder.init_state(memory_bank, enc_states)
 
         results = {
             "predictions": None,
@@ -608,8 +596,6 @@ class ContextTranslator(object):
 
 
         user_feats_proj = tile(user_feats_proj, beam_size, dim=0)
-        key_phrases_feats_proj = tile(key_phrases_feats_proj, beam_size, dim=0)
-        batch_key_phrases_lens = tile(batch_key_phrases_lens, beam_size)
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
@@ -638,8 +624,6 @@ class ContextTranslator(object):
                 memory_bank,
                 batch,
                 user_feats_proj,
-                key_phrases_feats_proj,
-                batch_key_phrases_lens,
                 src_vocabs,
                 memory_lengths=memory_lengths,
                 src_map=src_map,

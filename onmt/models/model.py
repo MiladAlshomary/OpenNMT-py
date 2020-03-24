@@ -223,7 +223,7 @@ class NMTContextDModel(nn.Module):
         return dec_out, attns
 
 
-class NMTSrcContextModel(nn.Module):
+class ContextModel(nn.Module):
     """
     Core trainable object in OpenNMT. Implements a trainable interface
     for a doubly-attentive encoder + decoder model.
@@ -233,15 +233,14 @@ class NMTSrcContextModel(nn.Module):
       decoder (:obj:`RNNDecoderBase`): a decoder object
       multi<gpu (bool): setup for multigpu support
     """
-    def __init__(self, encoder, decoder, user_encoder, key_phrases_encoder, multigpu=False):
+    def __init__(self, encoder, decoder, user_encoder, multigpu=False):
         self.multigpu = multigpu
         super(NMTSrcContextModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.user_encoder = user_encoder
-        self.key_phrases_encoder = key_phrases_encoder
 
-    def forward(self, src, tgt, lengths, user_feats, key_phrases_feats, key_phrases_lens, bptt=False):
+    def forward(self, src, tgt, lengths, user_feats, bptt=False):
         """Forward propagate a `src`, `img_feats` and `tgt` tuple for training.
         Possible initialized with a beginning decoder state.
 
@@ -264,12 +263,6 @@ class NMTSrcContextModel(nn.Module):
                  * final decoder state
         """
 
-        if self.key_phrases_encoder is not None:
-            # project/transform local image features into the expected structure/shape
-            key_phrases_feats_proj = self.key_phrases_encoder( key_phrases_feats )
-        else:
-            key_phrases_feats_proj = key_phrases_feats
-
         if self.user_encoder is not None:
             user_feats_proj = self.user_encoder(user_feats)
         else:
@@ -280,9 +273,9 @@ class NMTSrcContextModel(nn.Module):
         enc_state, memory_bank, lengths = self.encoder(src, lengths)
 
         if bptt is False:
-            enc_state = self.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_state)
+            enc_state = self.decoder.init_state(memory_bank, enc_state)
 
-        out, out_imgs, attns = self.decoder(tgt, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=lengths)
+        out, attns = self.decoder(tgt, memory_bank, user_feats_proj, memory_lengths=lengths)
         
         if self.multigpu:
             # Not yet supported on multi-gpu
