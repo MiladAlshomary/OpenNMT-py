@@ -802,7 +802,7 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
   @property
   def _input_size(self):
       """Using input feed by concatenating input with attention vectors."""
-      return self.embeddings.embedding_size + self.hidden_size + self.user_input_size
+      return self.embeddings.embedding_size + self.hidden_size
 
   def update_dropout(self, dropout):
       self.dropout.p = dropout
