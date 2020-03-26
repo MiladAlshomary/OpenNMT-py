@@ -136,7 +136,8 @@ class ContextTranslator(object):
             report_score=True,
             logger=None,
             seed=-1,
-            num_key_phrases=10):
+            num_key_phrases=10,
+            multimodal_model_type='double-attn'):
         self.model = model
         self.fields = fields
         tgt_field = dict(self.fields)["tgt"].base_field
@@ -208,6 +209,7 @@ class ContextTranslator(object):
         set_random_seed(seed, self._use_cuda)
 
         self.num_key_phrases = num_key_phrases
+        self.multimodal_model_type=multimodal_model_type
 
     @classmethod
     def from_opt(
@@ -270,7 +272,8 @@ class ContextTranslator(object):
             report_score=report_score,
             logger=logger,
             seed=opt.seed,
-            num_key_phrases=model_opt.num_key_phrases)
+            num_key_phrases=model_opt.num_key_phrases,
+            multimodal_model_type=opt.multimodal_model_type)
 
     def _log(self, msg):
         if self.logger:
@@ -490,9 +493,14 @@ class ContextTranslator(object):
         # and [src_len, batch, hidden] as memory_bank
         # in case of inference tgt_len = 1, batch = beam times batch_size
         # in case of Gold Scoring tgt_len = actual length, batch = 1 batch
-        dec_out, key_phrase_outputs, dec_attn = self.model.decoder(
-            decoder_in, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=memory_lengths, step=step
-        )
+        if self.multimodal_model_type == 'double-attn':
+            dec_out, key_phrase_outputs, dec_attn = self.model.decoder(
+                decoder_in, memory_bank, key_phrases_feats_proj, key_phrases_lens, user_feats_proj, memory_lengths=memory_lengths, step=step
+            )
+        else:
+            dec_out, dec_attn = self.model.decoder(
+                decoder_in, memory_bank, user_feats_proj, memory_lengths=memory_lengths, step=step
+            )
 
         # Generator forward.
         if not self.copy_attn:
@@ -564,23 +572,21 @@ class ContextTranslator(object):
             batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
 
 
-        if self.model.key_phrases_encoder is not None:
-            # project/transform local image features into the expected structure/shape
-            key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats )
-        else:
-            key_phrases_feats_proj = key_phrases_feats
-
-        user_feats_proj = self.model.user_encoder(user_feats)
 
 
-        # (1) Run the encoder on the src.
+        key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats ) if self.model.key_phrases_encoder is not None else batch_key_phrases_feats
+        user_feats_proj = self.model.user_encoder(user_feats) self.model.user_encoder is not None eles user_feats
+        
+        # (1) Run the encoder on the src.            
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
 
-        # combine encoder final hidden state with image features
-        #enc_init_state = self.model._combine_enc_state_img_proj(enc_states, feats_proj)
-        # initialise decoder
-
-        self.model.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_states)
+        if self.multimodal_model_type == 'context-d':
+            # combine encoder final hidden state with image features
+            enc_init_state = self.model._combine_enc_state_img_proj(enc_states, user_feats_proj)
+            # initialise decoder
+            self.model.decoder.init_state(memory_bank, enc_init_state)
+        else:
+            self.model.decoder.init_state(memory_bank, key_phrases_feats_proj, enc_states)
 
         results = {
             "predictions": None,
