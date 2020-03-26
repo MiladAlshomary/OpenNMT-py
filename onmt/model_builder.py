@@ -166,7 +166,9 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     key_phrases_encoder = None
     if model_opt.project_user:
         # An encoder to encode the contextual features
-        user_encoder = onmt.models.ContextualFeaturesProjector(1, model_opt.user_feat_size, model_opt.user_hidden_size,
+        num_layers = 1 if model_opt.multimodal_model_type == 'doubly-attn' else model_opt.dec_layers
+
+        user_encoder = onmt.models.ContextualFeaturesProjector(num_layers, model_opt.user_feat_size, model_opt.user_hidden_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     if model_opt.project_key_phrases:
@@ -183,6 +185,8 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
 
     if model_opt.multimodal_model_type == 'doubly-attn':
         model = onmt.models.NMTSrcContextModel(encoder, decoder, user_encoder, key_phrases_encoder)
+    elif model_opt.multimodal_model_type == 'context-d':
+        model = onmt.models.NMTContextDModel(encoder, decoder, user_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 

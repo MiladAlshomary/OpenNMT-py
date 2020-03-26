@@ -72,7 +72,7 @@ def build_trainer(opt, device_id, model, fields, optim, model_saver=None):
                            dropout=dropout,
                            dropout_steps=dropout_steps,
                            num_key_phrases=opt.num_key_phrases,
-                           context_model= opt.multimodal_model_type =='doubly-attn')
+                           context_model_type= opt.multimodal_model_type)
     return trainer
 
 
@@ -109,7 +109,7 @@ class Trainer(object):
                  n_gpu=1, gpu_rank=1,
                  gpu_verbose_level=0, report_manager=None, model_saver=None,
                  average_decay=0, average_every=1, model_dtype='fp32',
-                 earlystopper=None, dropout=[0.3], dropout_steps=[0], num_key_phrases=10, context_model=False):
+                 earlystopper=None, dropout=[0.3], dropout_steps=[0], num_key_phrases=10, context_model_type='other'):
         # Basic attributes.
         self.model = model
         self.train_loss = train_loss
@@ -134,7 +134,7 @@ class Trainer(object):
         self.dropout = dropout
         self.dropout_steps = dropout_steps
         self.num_key_phrases = num_key_phrases
-        self.context_model = context_model
+        self.context_model_type = context_model_type
 
         for i in range(len(self.accum_count_l)):
             assert self.accum_count_l[i] > 0
@@ -320,7 +320,7 @@ class Trainer(object):
                 # extract indices for all entries in the mini-batch
                 idxs  = batch.indices.cpu().data.numpy()
 
-                if self.context_model:
+                if self.context_model_type != 'other':
 
                     batch_context_feats = torch.from_numpy(context_feats[idxs])
                     batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
@@ -337,8 +337,10 @@ class Trainer(object):
                         batch_context_feats = batch_context_feats.cpu()
                 
                 # F-prop through the model.
-                if self.context_model:
+                if self.context_model_type == 'doubly-attn':
                     outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
+                elif self.context_model_type == 'context-d':
+                    outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
                 else:
                     outputs, attns = valid_model(src, tgt, src_lengths)
 
@@ -378,7 +380,7 @@ class Trainer(object):
 
             idxs = batch.indices.cpu().data.numpy()
 
-            if self.context_model:
+            if self.context_model_type != 'other':
                 # load image features for this minibatch into a pytorch Variable
                 batch_user_feats = torch.from_numpy( user_feats[idxs] )
                 batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
@@ -404,8 +406,10 @@ class Trainer(object):
                 if self.accum_count == 1:
                     self.optim.zero_grad()
 
-                if self.context_model:
+                if self.context_model_type =='doubly-attn':
                     outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, batch_key_phrases_feats, batch_key_phrases_lens, bptt=bptt)
+                elif self.context_model_type == 'context-d':
+                    outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, bptt=bptt)
                 else:
                     outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt)
 

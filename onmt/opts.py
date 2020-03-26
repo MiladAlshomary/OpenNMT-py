@@ -65,7 +65,7 @@ def model_opts(parser):
                    "the system to incorporate non-text inputs. "
                    "Options are [text|img|audio|vec].")
     
-    group.add('--multimodal_model_type', '-multimodal_model_type', default='context-d',
+    group.add('--multimodal_model_type', '-multimodal_model_type', default='other',
               choices=['context-d', 'doubly-attn', 'other'])
 
     group.add('--model_dtype', '-model_dtype', default='fp32',
