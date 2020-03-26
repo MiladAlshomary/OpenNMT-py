@@ -139,7 +139,6 @@ class ContextualFeaturesProjector(nn.Module):
 
     def forward(self, input):
         out = self.layers(input)
-        print( "out.size(): ", out.size() )
         if self.num_layers>1:
             out = out.unsqueeze(0)
             out = torch.cat([out[:,:,0:out.size(2):2], out[:,:,1:out.size(2):2]], 0)
