@@ -499,7 +499,7 @@ class ContextTranslator(object):
             )
         else:
             dec_out, dec_attn = self.model.decoder(
-                decoder_in, memory_bank, user_feats_proj, memory_lengths=memory_lengths, step=step
+                decoder_in, memory_bank, memory_lengths=memory_lengths, step=step
             )
 
         # Generator forward.
