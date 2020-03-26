@@ -273,7 +273,7 @@ class ContextTranslator(object):
             logger=logger,
             seed=opt.seed,
             num_key_phrases=model_opt.num_key_phrases,
-            multimodal_model_type=opt.multimodal_model_type)
+            multimodal_model_type=model_opt.multimodal_model_type)
 
     def _log(self, msg):
         if self.logger:
