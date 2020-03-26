@@ -575,7 +575,7 @@ class ContextTranslator(object):
 
 
         key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats ) if self.model.key_phrases_encoder is not None else batch_key_phrases_feats
-        user_feats_proj = self.model.user_encoder(user_feats) self.model.user_encoder is not None eles user_feats
+        user_feats_proj = self.model.user_encoder(user_feats) if self.model.user_encoder is not None else user_feats
         
         # (1) Run the encoder on the src.            
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
