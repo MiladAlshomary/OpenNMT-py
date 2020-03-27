@@ -557,17 +557,17 @@ class ContextTranslator(object):
 
         # Encode context features...
         idxs  = batch.indices.cpu().data.numpy()
-        user_feats = torch.from_numpy( context_feats[idxs] )
-        user_feats = torch.autograd.Variable(user_feats, requires_grad=False)
+        batch_user_feats = torch.from_numpy( context_feats[idxs] )
+        batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
 
         batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
 
         if next(self.model.parameters()).is_cuda:
-            user_feats = user_feats.cuda()
+            batch_user_feats = batch_user_feats.cuda()
             batch_key_phrases_feats = batch_key_phrases_feats.cuda()
             batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
         else:
-            user_feats = user_feats.cpu()
+            batch_user_feats = batch_user_feats.cpu()
             batch_key_phrases_feats = batch_key_phrases_feats.cpu()
             batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
 
@@ -575,7 +575,7 @@ class ContextTranslator(object):
 
 
         key_phrases_feats_proj = self.model.key_phrases_encoder( batch_key_phrases_feats ) if hasattr(self.model, 'key_phrases_encoder') else batch_key_phrases_feats
-        user_feats_proj = self.model.user_encoder(user_feats) if self.multimodal_model_type=='double-attn' else self.model.context_encoder(user_feats)
+        user_feats_proj = self.model.user_encoder(batch_user_feats) if self.multimodal_model_type=='double-attn' else self.model.context_encoder(batch_user_feats)
         
         # (1) Run the encoder on the src.            
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
@@ -613,8 +613,10 @@ class ContextTranslator(object):
         memory_lengths = tile(src_lengths, beam_size)
 
 
-        user_feats_proj = tile(user_feats_proj, beam_size, dim=0)
-        key_phrases_feats_proj = tile(key_phrases_feats_proj, beam_size, dim=0)
+        if self.multimodal_model_type == 'double-attn':
+            user_feats_proj = tile(user_feats_proj, beam_size, dim=0)
+            key_phrases_feats_proj = tile(key_phrases_feats_proj, beam_size, dim=0)
+
         batch_key_phrases_lens = tile(batch_key_phrases_lens, beam_size)
 
         # (0) pt 2, prep the beam object
@@ -671,9 +673,10 @@ class ContextTranslator(object):
 
                 memory_lengths = memory_lengths.index_select(0, select_indices)
 
-                user_feats_proj        = user_feats_proj.index_select(0, select_indices)
-                key_phrases_feats_proj = key_phrases_feats_proj.index_select(0, select_indices)
-                batch_key_phrases_lens = batch_key_phrases_lens.index_select(0, select_indices)
+                if self.multimodal_model_type == 'double-attn':
+                    user_feats_proj        = user_feats_proj.index_select(0, select_indices)
+                    key_phrases_feats_proj = key_phrases_feats_proj.index_select(0, select_indices)
+                    batch_key_phrases_lens = batch_key_phrases_lens.index_select(0, select_indices)
 
                 if src_map is not None:
                     src_map = src_map.index_select(1, select_indices)
