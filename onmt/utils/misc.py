@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import torch
+import numpy as np
 import random
 import inspect
 from itertools import islice
@@ -125,15 +126,19 @@ def fn_args(fun):
     """Returns the list of function arguments name."""
     return inspect.getfullargspec(fun).args
 
-def pad_batch(batch, padding_dim=5):
+def pad_batch(batch, padding_dim=5, item_dim=300):
     from torch.nn.utils.rnn  import pad_sequence
     from torch.nn.functional import pad
 
     #trim key phrases to maximum 5 phrases
     #batch = [x[0:padding_dim] for x in batch]
 
+    #Add random vector for empty item
+    
     seq_lens = list(map(lambda x: len(x), batch))
     max_len  = max(seq_lens)
+
+    batch = list(map(lambda x: x if len(x) > 0 else [np.zeros(item_dim)] , batch))
 
     #padding 
     batch = [torch.tensor(x) for x in batch]
