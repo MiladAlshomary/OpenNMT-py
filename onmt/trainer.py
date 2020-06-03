@@ -324,20 +324,23 @@ class Trainer(object):
 
                     batch_context_feats = torch.from_numpy(context_feats[idxs])
                     batch_context_feats = torch.autograd.Variable(batch_context_feats, requires_grad=False)
-
+                    if next(valid_model.parameters()).is_cuda:
+                        batch_context_feats = batch_context_feats.cuda()
+                    else:
+                        batch_context_feats = batch_context_feats.cpu()
+                
+                # F-prop through the model.
+                if self.context_model_type == 'doubly-attn':
                     batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
 
                     if next(valid_model.parameters()).is_cuda:
                         batch_key_phrases_feats = batch_key_phrases_feats.cuda()
                         batch_key_phrases_lens  = batch_key_phrases_lens.cuda()
-                        batch_context_feats = batch_context_feats.cuda()
                     else:
                         batch_key_phrases_feats = batch_key_phrases_feats.cpu()
                         batch_key_phrases_lens  = batch_key_phrases_lens.cpu()
-                        batch_context_feats = batch_context_feats.cpu()
                 
-                # F-prop through the model.
-                if self.context_model_type == 'doubly-attn':
+
                     outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats, batch_key_phrases_feats, batch_key_phrases_lens)
                 elif self.context_model_type == 'context-d':
                     outputs, attns = valid_model(src, tgt, src_lengths, batch_context_feats)
@@ -381,20 +384,13 @@ class Trainer(object):
             idxs = batch.indices.cpu().data.numpy()
 
             if self.context_model_type != 'other':
-                # load image features for this minibatch into a pytorch Variable
+
                 batch_user_feats = torch.from_numpy( user_feats[idxs] )
                 batch_user_feats = torch.autograd.Variable(batch_user_feats, requires_grad=False)
-
-                batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
-                
                 if next(self.model.parameters()).is_cuda:
                     batch_user_feats = batch_user_feats.cuda()
-                    batch_key_phrases_feats = batch_key_phrases_feats.cuda()
-                    batch_key_phrases_lens = batch_key_phrases_lens.cuda()
                 else:
                     batch_user_feats = batch_user_feats.cpu()
-                    batch_key_phrases_feats = batch_key_phrases_feats.cpu()
-                    batch_key_phrases_lens = batch_key_phrases_lens.cpu()
 
 
             bptt = False
@@ -407,9 +403,21 @@ class Trainer(object):
                     self.optim.zero_grad()
 
                 if self.context_model_type =='doubly-attn':
+
+                    batch_key_phrases_feats, batch_key_phrases_lens = onmt.utils.misc.pad_batch(key_phrases_feats[idxs], self.num_key_phrases)
+                    
+                    if next(self.model.parameters()).is_cuda:
+                        batch_key_phrases_feats = batch_key_phrases_feats.cuda()
+                        batch_key_phrases_lens = batch_key_phrases_lens.cuda()
+                    else:
+                        batch_key_phrases_feats = batch_key_phrases_feats.cpu()
+                        batch_key_phrases_lens = batch_key_phrases_lens.cpu()
+
                     outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, batch_key_phrases_feats, batch_key_phrases_lens, bptt=bptt)
+                
                 elif self.context_model_type == 'context-d':
                     outputs, attns = self.model(src, tgt, src_lengths, batch_user_feats, bptt=bptt)
+                
                 else:
                     outputs, attns = self.model(src, tgt, src_lengths, bptt=bptt)
 
