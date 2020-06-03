@@ -101,13 +101,13 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
     #Loading user profiles
     training_profiles = None
     valid_profiles = None
-    if opt.path_to_train_profiles_feats not None:
+    if opt.path_to_train_profiles_feats != None:
         training_profiles = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
         valid_profiles    = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
 
     training_key_phrases = None
     valid_key_phrases = None
-    if opt.path_to_train_key_phrases not None:
+    if opt.path_to_train_key_phrases != None:
         training_key_phrases = np.array(pickle.load(open(opt.path_to_train_key_phrases, 'rb')))
         valid_key_phrases    = np.array(pickle.load(open(opt.path_to_valid_key_phrases, 'rb')))
 
