@@ -99,11 +99,17 @@ def main(opt, device_id, batch_queue=None, semaphore=None):
         opt, device_id, model, fields, optim, model_saver=model_saver)
 
     #Loading user profiles
-    training_profiles = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
-    valid_profiles    = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
+    training_profiles = None
+    valid_profiles = None
+    if opt.path_to_train_profiles_feats not None:
+        training_profiles = pickle.load(open(opt.path_to_train_profiles_feats, 'rb'))
+        valid_profiles    = pickle.load(open(opt.path_to_valid_profiles_feats, 'rb'))
 
-    training_key_phrases = np.array(pickle.load(open(opt.path_to_train_key_phrases, 'rb')))
-    valid_key_phrases    = np.array(pickle.load(open(opt.path_to_valid_key_phrases, 'rb')))
+    training_key_phrases = None
+    valid_key_phrases = None
+    if opt.path_to_train_key_phrases not None:
+        training_key_phrases = np.array(pickle.load(open(opt.path_to_train_key_phrases, 'rb')))
+        valid_key_phrases    = np.array(pickle.load(open(opt.path_to_valid_key_phrases, 'rb')))
 
     if batch_queue is None:
         if len(opt.data_ids) > 1:
