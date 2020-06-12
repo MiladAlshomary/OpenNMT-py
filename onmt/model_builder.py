@@ -163,14 +163,9 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
     decoder = build_decoder(model_opt, tgt_emb)
 
     user_encoder = None
-    key_phrases_encoder = None
     if model_opt.project_user:
         # An encoder to encode the contextual features
         user_encoder = onmt.models.ContextualFeaturesProjector(1, model_opt.user_feat_size, model_opt.user_hidden_size,
-                model_opt.context_dropout, model_opt.use_nonlinear_projection)
-
-    if model_opt.project_key_phrases:
-        key_phrases_encoder = onmt.models.ContextLocalFeaturesProjector(1, model_opt.key_phrases_feat_size, model_opt.num_key_phrases, model_opt.dec_rnn_size,
                 model_opt.context_dropout, model_opt.use_nonlinear_projection)
 
     # Build NMTModel(= encoder + decoder).
@@ -182,7 +177,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         device = torch.device("cpu")
 
     if model_opt.multimodal_model_type == 'doubly-attn':
-        model = onmt.models.NMTContextDModel(encoder, decoder, user_encoder, key_phrases_encoder)
+        model = onmt.models.NMTContextDModel(encoder, decoder, user_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 

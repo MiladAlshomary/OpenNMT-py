@@ -725,7 +725,6 @@ class InputFeedRNNDecoderDoublyAttentive(RNNDecoderBaseDoublyAttentive):
                   memory_lengths=memory_lengths)   
 
               attns["std"].append(p_attn)
-              attns["std_key_phrases"].append(p_attn)
           else:
               decoder_output = rnn_output
           
