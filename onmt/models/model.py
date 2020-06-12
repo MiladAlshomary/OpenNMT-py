@@ -146,84 +146,9 @@ class ContextualFeaturesProjector(nn.Module):
         #     #print( "out.size(): ", out.size() )
         return out
 
+
+
 class NMTContextDModel(nn.Module):
-    """
-    The encoder + decoder Neural Machine Translation Model
-    with image features used to initialise the decoder.
-    """
-    def __init__(self, encoder, decoder, context_encoder, multigpu=False):
-        """
-        Args:
-            encoder(*Encoder): the various encoder.
-            decoder(*Decoder): the various decoder.
-            context_encoder(Encoder): the image encoder.
-            multigpu(bool): run parellel on multi-GPU?
-        """
-        self.multigpu = multigpu
-        super(NMTContextDModel, self).__init__()
-        self.encoder = encoder
-        self.decoder = decoder
-        self.context_encoder = context_encoder
-
-    def _combine_enc_state_img_proj(self, enc_hidden, img_proj):
-        """
-        Args:
-            enc_hidden(tuple or DecoderState):
-                                    Tuple containing hidden state and cell
-                                    (h,c) in case of an LSTM, or a hidden state
-                                    (DecoderState) in case of GRU cell.
-            img_proj(Variable):     Variable containing projected image features.
-            
-            Returns:
-                Variable with DecoderState combined with image features.
-        """
-        enc_init_state = []
-        if isinstance(enc_hidden, tuple):
-            for e in enc_hidden:
-                enc_init_state.append(e + img_proj)
-            enc_init_state = tuple(enc_init_state)
-        else:
-            enc_init_state = enc_hidden + img_proj
-        return enc_init_state
-
-
-    def forward(self, src, tgt, lengths, context_feats, bptt=False):
-        """Forward propagate a `src` and `tgt` pair for training.
-        Possible initialized with a beginning decoder state.
-
-        Args:
-            src (Tensor): A source sequence passed to encoder.
-                typically for inputs this will be a padded `LongTensor`
-                of size ``(len, batch, features)``. However, may be an
-                image or other generic input depending on encoder.
-            tgt (LongTensor): A target sequence of size ``(tgt_len, batch)``.
-            lengths(LongTensor): The src lengths, pre-padding ``(batch,)``.
-            bptt (Boolean): A flag indicating if truncated bptt is set.
-                If reset then init_state
-
-        Returns:
-            (FloatTensor, dict[str, FloatTensor]):
-
-            * decoder output ``(tgt_len, batch, hidden)``
-            * dictionary attention dists of ``(tgt_len, batch, src_len)``
-        """
-        
-        # project image features
-        feats_proj = self.context_encoder(context_feats)
-
-        tgt = tgt[:-1]  # exclude last target from inputs
-
-        enc_state, memory_bank, lengths = self.encoder(src, lengths)
-        enc_init_state = self._combine_enc_state_img_proj(enc_state, feats_proj)
-        if bptt is False:
-            self.decoder.init_state(src, memory_bank, enc_init_state)
-        
-        dec_out, attns = self.decoder(tgt, memory_bank,
-                                      memory_lengths=lengths)
-        return dec_out, attns
-
-
-class ContextModel(nn.Module):
     """
     Core trainable object in OpenNMT. Implements a trainable interface
     for a doubly-attentive encoder + decoder model.
@@ -235,7 +160,7 @@ class ContextModel(nn.Module):
     """
     def __init__(self, encoder, decoder, user_encoder, multigpu=False):
         self.multigpu = multigpu
-        super(NMTSrcContextModel, self).__init__()
+        super(NMTContextDModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.user_encoder = user_encoder
