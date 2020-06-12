@@ -5,4 +5,4 @@ from onmt.models.model import ContextualFeaturesProjector, ContextLocalFeaturesP
 from onmt.models.model import NMTContextDModel
 
 __all__ = ["build_model_saver", "ModelSaver",
-           "NMTModel", "ContextualFeaturesProjector", "ContextLocalFeaturesProjector", "NMTContextDModel",, "check_sru_requirement"]
+           "NMTModel", "ContextualFeaturesProjector", "ContextLocalFeaturesProjector", "NMTContextDModel", "check_sru_requirement"]
