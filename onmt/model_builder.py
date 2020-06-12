@@ -182,7 +182,7 @@ def build_base_model(model_opt, fields, gpu, checkpoint=None, gpu_id=None):
         device = torch.device("cpu")
 
     if model_opt.multimodal_model_type == 'doubly-attn':
-        model = onmt.models.NMTSrcContextModel(encoder, decoder, user_encoder, key_phrases_encoder)
+        model = onmt.models.NMTContextDModel(encoder, decoder, user_encoder, key_phrases_encoder)
     else:
         model = onmt.models.NMTModel(encoder, decoder)
 
