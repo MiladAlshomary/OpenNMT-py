@@ -159,10 +159,11 @@ class NMTContextDModel(nn.Module):
       multi<gpu (bool): setup for multigpu support
     """
     def __init__(self, encoder, decoder, user_encoder, multigpu=False):
-        self.multigpu = multigpu
         super(NMTContextDModel, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
+
+        self.multigpu = multigpu
         self.user_encoder = user_encoder
 
     def forward(self, src, tgt, lengths, user_feats, bptt=False):
