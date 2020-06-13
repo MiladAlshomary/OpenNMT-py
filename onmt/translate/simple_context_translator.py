@@ -587,7 +587,7 @@ class SimpleContextTranslator(object):
 
 
         if self.multimodal_model_type == 'double-attn':
-            user_feats_proj = tile(user_feats_proj, beam_size)
+            user_feats_proj = tile(user_feats_proj, beam_size, dim=1)
 
         # (0) pt 2, prep the beam object
         beam = BeamSearch(
