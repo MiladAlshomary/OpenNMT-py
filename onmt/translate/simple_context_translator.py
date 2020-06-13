@@ -559,7 +559,7 @@ class SimpleContextTranslator(object):
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
 
         # initialise decoder
-        self.model.decoder.init_state(src, memory_bank, enc_states)
+        self.model.decoder.init_state(src, memory_bank)
 
         results = {
             "predictions": None,
