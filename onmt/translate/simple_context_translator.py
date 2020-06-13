@@ -136,7 +136,7 @@ class SimpleContextTranslator(object):
             report_score=True,
             logger=None,
             seed=-1,
-            multimodal_model_type='double-attn'):
+            multimodal_model_type='doubly-attn'):
         self.model = model
         self.fields = fields
         tgt_field = dict(self.fields)["tgt"].base_field
@@ -586,7 +586,7 @@ class SimpleContextTranslator(object):
         memory_lengths = tile(src_lengths, beam_size)
 
 
-        if self.multimodal_model_type == 'double-attn':
+        if self.multimodal_model_type == 'doubly-attn':
             user_feats_proj = tile(user_feats_proj, beam_size, dim=1)
 
         # (0) pt 2, prep the beam object
@@ -641,7 +641,7 @@ class SimpleContextTranslator(object):
 
                 memory_lengths = memory_lengths.index_select(0, select_indices)
 
-                if self.multimodal_model_type == 'double-attn':
+                if self.multimodal_model_type == 'doubly-attn':
                     user_feats_proj        = user_feats_proj.index_select(0, select_indices)
 
                 if src_map is not None:
