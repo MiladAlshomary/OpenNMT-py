@@ -1,5 +1,6 @@
 """ Modules for translation """
-from onmt.translate.context_translator import ContextTranslator, SimpleContextTranslator
+from onmt.translate.context_translator import ContextTranslator
+from onmt.translate.simple_context_translator import SimpleContextTranslator
 from onmt.translate.translator import Translator
 from onmt.translate.translation import Translation, TranslationBuilder
 from onmt.translate.beam import Beam, GNMTGlobalScorer
