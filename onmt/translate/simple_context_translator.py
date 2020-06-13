@@ -553,7 +553,7 @@ class SimpleContextTranslator(object):
         else:
             batch_user_feats = batch_user_feats.cpu()
         
-        user_feats_proj = self.model.user_encoder(batch_user_feats) if self.multimodal_model_type=='double-attn' else self.model.context_encoder(batch_user_feats)
+        user_feats_proj = self.model.user_encoder(batch_user_feats)
         
         # (1) Run the encoder on the src.            
         src, enc_states, memory_bank, src_lengths = self._run_encoder(batch)
